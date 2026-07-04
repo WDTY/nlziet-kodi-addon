@@ -1,5 +1,7 @@
 from datetime import datetime
+import re
 
+import xbmc
 import xbmcgui
 import xbmcplugin
 
@@ -130,6 +132,142 @@ class BrowseController:
         return self._handlers['show_series_detail'](series_id)
 
     def series_season(self, series_id, season_id):
+        if (self._addon and self._get_api_instance and self._api_class
+                and self._add_directory_item and self._get_string
+                and self._pick_landscape_thumb):
+            if not series_id:
+                xbmcgui.Dialog().notification('NLZiet', self._get_string('missing_series_id'), xbmcgui.NOTIFICATION_ERROR)
+                return
+            username = self._addon.getSetting('username')
+            password = self._addon.getSetting('password')
+            # Use cached API instance for faster episode loading
+            try:
+                api = self._get_api_instance()
+            except Exception:
+                api = self._api_class(username=username, password=password)
+            xbmc.log(f"NLZiet show_series_season: series_id={series_id} season_id={season_id}", xbmc.LOGDEBUG)
+            episodes = api.get_series_episodes(series_id, season_id=season_id or None, limit=400)
+            # If the API returned no episodes, but the `season_id` appears to be
+            # an items/episodes URL, attempt to fetch items directly from that URL
+            # (some detail payloads expose an `episodes_url` instead of numeric ids).
+            if not episodes and season_id and isinstance(season_id, str) and (season_id.startswith('http') or '/episodes' in season_id or 'items' in season_id):
+                try:
+                    xbmc.log(f"NLZiet attempting fallback get_items_from_url for season_id={season_id}", xbmc.LOGDEBUG)
+                    episodes = api.get_items_from_url(season_id) or []
+                except Exception:
+                    episodes = []
+            if not episodes:
+                xbmcgui.Dialog().notification('NLZiet', self._get_string('no_episodes_found'), xbmcgui.NOTIFICATION_INFO)
+                return
+            for ep in episodes:
+                info = None
+                try:
+                    desc = ep.get('description') or ep.get('subtitle') or ''
+                    title_for_info = ep.get('title') or ''
+                    aired_date = ep.get('raw', {}).get('broadcastAt') or ep.get('aired_date') or ep.get('broadcastDate') or ep.get('aired') or None
+
+                    # Format broadcast date info
+                    date_info = ''
+                    if aired_date:
+                        try:
+                            # Parse and format date
+                            if 'T' in aired_date:
+                                date_obj = datetime.fromisoformat(aired_date.replace('Z', '+00:00'))
+                            else:
+                                date_obj = datetime.strptime(aired_date, '%Y-%m-%d')
+
+                            date_formatted = date_obj.strftime('%d-%m-%Y')
+                            date_info = f"Uitgezonden: {date_formatted}"
+                        except Exception:
+                            date_info = ''
+
+                    # Build description with broadcast date if available
+                    plot_full = desc
+                    po = desc
+
+                    if date_info:
+                        plot_full = f"{date_info}\n{desc}" if desc else date_info
+                        po = f"{date_info} â€” {desc[:100]}" if desc else date_info
+
+                    if desc or date_info:
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                except Exception:
+                    info = None
+
+                # Prefer an already-formatted episode numbering string when available.
+                # First, prefer subtitle patterns like 'S1:A2' (some payloads include
+                # this canonical format in `subtitle`). If present, use it as
+                # "S1:A2 <Episode Title>". Otherwise fall back to the API's
+                # formatted label or numeric SxxExx formatting.
+                formatted_label = ep.get('formatted_episode_numbering') or ep.get('formattedEpisodeNumbering') or (ep.get('raw') or {}).get('formattedEpisodeNumbering')
+                label_title = ep.get('title') or ''
+
+                # Check subtitle for the canonical 'S{n}:A{m}' pattern (e.g. 'S1:A2 Secrets').
+                # If present, extract the remainder of the subtitle after the code and
+                # prefer that as the human-friendly episode title ("S1:A2 <ep title>").
+                subtitle_code = None
+                sub = ''
+                try:
+                    sub = ep.get('subtitle') or ''
+                    if sub and isinstance(sub, str):
+                        m = re.search(r"\bS\d+:A\d+\b", sub, re.I)
+                        if m:
+                            subtitle_code = m.group(0)
+                            # remainder after the matched code
+                            remainder = sub[m.end():].strip()
+                            # strip common separators (colon, dash, en-dash, em-dash)
+                            remainder = re.sub(r'^[\s\-:\u2013\u2014]+', '', remainder)
+                        else:
+                            remainder = ''
+                    else:
+                        remainder = ''
+                except Exception:
+                    subtitle_code = None
+                    remainder = ''
+
+                if subtitle_code:
+                    if remainder:
+                        label = f"{subtitle_code} {remainder}"
+                    else:
+                        # no explicit episode title in subtitle, show code and fall back to series title if available
+                        label = f"{subtitle_code} - {label_title}" if label_title else subtitle_code
+                elif sub and isinstance(sub, str) and sub.strip():
+                    # subtitle exists but contains no S#:A# code â€” use the subtitle as
+                    # the human-friendly episode title (e.g. 'Korfspiracy').
+                    label = sub.strip()
+                elif formatted_label:
+                    # Use the canonical formatted label from the API/app when present
+                    label = f"{formatted_label} - {label_title}" if label_title else formatted_label
+                else:
+                    # Prefer normalized episode_number/season_number when available
+                    ep_num = ep.get('episode_number') or ep.get('episodeNumber') or ep.get('number') or ep.get('episode')
+                    season_num = ep.get('season_number') or ep.get('seasonNumber') or None
+                    label = label_title or ''
+                    try:
+                        n = int(ep_num) if ep_num is not None and str(ep_num).isdigit() else None
+                    except Exception:
+                        n = None
+                    try:
+                        s = int(season_num) if season_num is not None and str(season_num).isdigit() else None
+                    except Exception:
+                        s = None
+
+                    if n is not None:
+                        if s is not None:
+                            label = f"S{s:02d}E{n:02d} - {label}" if label else f"S{s:02d}E{n:02d}"
+                        else:
+                            label = f"Episode {n} - {label}" if label else f"Episode {n}"
+                    else:
+                        label = label or ep.get('id') or 'Episode'
+
+                self._add_directory_item(label, {'mode': 'play', 'id': ep.get('id')}, is_folder=False, thumb=self._pick_landscape_thumb(ep), info=info, content=ep)
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['show_series_season'](series_id, season_id)
 
     def placement_row(self, items_url, placement_id, comp_index):

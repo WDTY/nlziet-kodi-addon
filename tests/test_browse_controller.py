@@ -8,6 +8,8 @@ class FakeBrowseApi:
         self.placement_calls = []
         self.placement_rows = None
         self.series_list_calls = 0
+        self.episode_calls = []
+        self.episodes = None
 
     def get_series_by_genre(self, genre):
         self.genre_calls.append(('series', genre))
@@ -71,6 +73,17 @@ class FakeBrowseApi:
             'id': 's3',
             'title': 'Fallback Series',
             'description': 'Description',
+        }]
+
+    def get_series_episodes(self, series_id, season_id=None, limit=None):
+        self.episode_calls.append((series_id, season_id, limit))
+        if self.episodes is not None:
+            return self.episodes
+        return [{
+            'id': 'ep1',
+            'title': 'Episode Title',
+            'subtitle': 'S1:A2 Episode Subtitle',
+            'description': 'Episode description',
         }]
 
 
@@ -243,3 +256,60 @@ def test_series_falls_back_to_series_list_without_network(fake_addon, kodi_recor
     assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 's3'}
     assert added[0][1]['is_folder'] is True
     assert kodi_recorder.ended == [61]
+
+
+def test_series_season_adds_episode_items_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        62,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+    ).series_season('series-1', 'season-1')
+
+    assert api.episode_calls == [('series-1', 'season-1', 400)]
+    assert added[0][0][0] == 'S1:A2 Episode Subtitle'
+    assert added[0][0][1] == {'mode': 'play', 'id': 'ep1'}
+    assert added[0][1]['is_folder'] is False
+    assert kodi_recorder.ended == [62]
+
+
+def test_series_season_falls_back_to_items_url_without_network(fake_addon):
+    added = []
+    api = FakeBrowseApi()
+    api.episodes = []
+
+    BrowseController(
+        {},
+        63,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+    ).series_season('series-1', 'https://example.test/episodes')
+
+    assert api.item_url_calls == ['https://example.test/episodes']
+    assert added[0][0][0] == 'URL Item'
+
+
+def test_series_season_missing_series_id_notifies(fake_addon, kodi_recorder):
+    BrowseController(
+        {},
+        64,
+        lambda: FakeBrowseApi(),
+        lambda *args, **kwargs: None,
+        fake_addon,
+        lambda **kwargs: FakeBrowseApi(),
+        lambda key, *args: key,
+        lambda item: 'thumb',
+    ).series_season('', 'season-1')
+
+    assert kodi_recorder.notifications == [('NLZiet', 'missing_series_id', 'error')]
