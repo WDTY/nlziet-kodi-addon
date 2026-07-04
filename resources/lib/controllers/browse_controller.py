@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import xbmcgui
 import xbmcplugin
 
@@ -78,6 +80,92 @@ class BrowseController:
         return self._handlers['browse_tv_shows']()
 
     def tv_genre(self, genre):
+        if (self._get_api_instance and self._add_directory_item
+                and self._pick_landscape_thumb and self._make_color_tag
+                and self._expiry_color_raw):
+            api = self._get_api_instance()
+
+            # Get shows for the genre (None for 'all')
+            genre_param = None if genre == 'all' else genre
+            results = api.get_videos_by_genre(genre=genre_param, limit=999)
+
+            for item in results:
+                # Use subtitle as primary display title if available (for episodes with episode names)
+                display_title = item.get('subtitle') or item.get('title') or ''
+                info = None
+                try:
+                    desc = item.get('description') or item.get('subtitle') or ''
+                    title_for_info = item.get('title') or ''
+                    expiry_text = item.get('expires_in') or None
+                    aired_date = item.get('aired_date') or None
+
+                    truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                    plot_full = desc
+                    po = truncated
+
+                    # Add aired/broadcast date info if available
+                    date_info = ''
+                    if aired_date:
+                        try:
+                            # Parse and format date
+                            if 'T' in aired_date:
+                                date_obj = datetime.fromisoformat(aired_date.replace('Z', '+00:00'))
+                            else:
+                                date_obj = datetime.strptime(aired_date, '%Y-%m-%d')
+
+                            date_formatted = date_obj.strftime('%d-%m-%Y')
+                            date_info = f"Uitgezonden: {date_formatted}"
+                        except Exception:
+                            date_info = ''
+
+                    # Build full plot with date info
+                    parts = []
+                    if date_info:
+                        parts.append(date_info)
+                    if expiry_text:
+                        marker = 'ðŸ”¶ '
+                        colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                        parts.append(colored)
+                    if desc:
+                        parts.append(desc)
+
+                    plot_full = '\n'.join(parts) if parts else ''
+
+                    # Build plotoutline with date
+                    po_parts = []
+                    if date_info:
+                        po_parts.append(date_info)
+                    if expiry_text:
+                        marker = 'ðŸ”¶ '
+                        po_parts.append(f"{marker}{expiry_text}")
+                    if truncated:
+                        po_parts.append(truncated)
+
+                    po = ' â€” '.join(po_parts) if po_parts else truncated
+
+                    # Create info if we have any data (title, date, or description)
+                    if title_for_info or date_info or expiry_text or desc:
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                except Exception:
+                    info = None
+
+                # Determine query mode based on item type
+                item_type = (item.get('type') or '').lower()
+                query = {'mode': 'play', 'id': item.get('id')}
+                is_folder = False
+
+                if item_type == 'series':
+                    # Series open as folders showing seasons/episodes
+                    query = {'mode': 'series_detail', 'series_id': item.get('id')}
+                    is_folder = True
+
+                self._add_directory_item(display_title, query, is_folder=is_folder, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_tv_genre'](genre)
 
     def series_categories(self):
