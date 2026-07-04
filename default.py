@@ -1740,6 +1740,20 @@ def browse_category(content_type):
 
 
 def search_group(q, group):
+    return SearchController(
+        {},
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW
+    ).group(q, group)
+
+
+def _legacy_search_group(q, group):
     """Show search results filtered to a single group (e.g. 'Series' or 'Movies').
 
     This re-runs the search (or fallback) and presents only items that match
