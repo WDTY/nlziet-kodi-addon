@@ -1,6 +1,10 @@
 from datetime import datetime, timedelta
 import re
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 import xbmc
 import xbmcgui
