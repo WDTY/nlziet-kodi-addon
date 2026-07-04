@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
+from zoneinfo import ZoneInfo
 
 import xbmc
 import xbmcgui
@@ -12,7 +13,8 @@ class BrowseController:
     def __init__(self, handlers, handle=None, get_api_instance=None,
                  add_directory_item=None, addon=None, api_class=None,
                  get_string=None, pick_landscape_thumb=None,
-                 make_color_tag=None, expiry_color_raw=None):
+                 make_color_tag=None, expiry_color_raw=None,
+                 get_channels_menu_data=None):
         self._handlers = handlers
         self._handle = handle
         self._get_api_instance = get_api_instance
@@ -23,6 +25,7 @@ class BrowseController:
         self._pick_landscape_thumb = pick_landscape_thumb
         self._make_color_tag = make_color_tag
         self._expiry_color_raw = expiry_color_raw
+        self._get_channels_menu_data = get_channels_menu_data
 
     def main_menu(self):
         return self._handlers['main_menu']()
@@ -560,4 +563,124 @@ class BrowseController:
         return self._handlers['browse_movie_genre'](genre)
 
     def category(self, content_type):
+        if (self._addon and self._get_api_instance and self._api_class
+                and self._add_directory_item and self._pick_landscape_thumb
+                and self._make_color_tag and self._expiry_color_raw
+                and self._get_channels_menu_data):
+            username = self._addon.getSetting('username')
+            password = self._addon.getSetting('password')
+            # Use cached API instance for faster menu navigation
+            try:
+                api = self._get_api_instance()
+            except Exception:
+                api = self._api_class(username=username, password=password)
+            epg_map = {}
+            if content_type.lower() == 'movies':
+                results = api.get_movies()
+            elif content_type.lower() == 'videos':
+                results = api.get_videos()
+            elif content_type.lower() == 'documentary':
+                results = api.get_documentaries()
+            elif content_type.lower() == 'channels':
+                results, epg_map = self._get_channels_menu_data(api)
+            else:
+                results = api.search(content_type, content_type=content_type)
+            for item in results:
+                info = None
+                try:
+                    desc = item.get('description') or item.get('subtitle') or ''
+                    if desc:
+                        title_for_info = item.get('title') or ''
+                        expiry_text = item.get('expires_in') or None
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        plot_full = desc
+                        po = truncated
+                        if expiry_text:
+                            marker = 'ðŸ”¶ '
+                            colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                            plot_full = f"{colored}\n{desc}" if desc else colored
+                            po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                    else:
+                        cid = item.get('id')
+                        # Skip detail fetch for channels - they don't support /v9/content/detail/ endpoint
+                        if cid and content_type.lower() != 'channels':
+                            detail = api.get_content_detail(cid)
+                            if detail:
+                                desc = detail.get('description') or detail.get('plot') or ''
+                                expiry_text = detail.get('expires_in') or None
+                                title_for_info = detail.get('title') or item.get('title') or ''
+                                if desc:
+                                    truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                                    plot_full = desc
+                                    po = truncated
+                                    if expiry_text:
+                                        marker = 'ðŸ”¶ '
+                                        colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                                        plot_full = f"{colored}\n{desc}" if desc else colored
+                                        po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                                    info = {
+                                        'title': title_for_info,
+                                        'plot': plot_full,
+                                        'plotoutline': po,
+                                    }
+                        # Attach EPG info for channels (current 'Nu live' and next 'Straks')
+                        if content_type.lower() == 'channels' and item.get('id'):
+                            try:
+                                channel_id = item.get('id')
+                                channel_epg = epg_map.get(channel_id)
+
+                                # New structure: channel_epg has 'current' and 'next' keys
+                                if channel_epg:
+                                    now = datetime.now(tz=ZoneInfo('Europe/Amsterdam'))
+                                    now_plus_6 = now + timedelta(hours=6)
+                                    epg_lines = []
+                                    for pgm in channel_epg:
+                                        # only supports python >= 3.7
+                                        start = datetime.fromisoformat(pgm['start'])
+                                        end = datetime.fromisoformat(pgm['stop'])
+                                        if end > now_plus_6:
+                                            break
+                                        if end > now:
+                                            epg_lines.append(' - '.join((
+                                                start.strftime("%H:%M"),
+                                                pgm["title"])))
+
+                                    # Update info with EPG data
+                                    if epg_lines:
+                                        epg_text = '\n'.join(epg_lines[:12])
+                                        if info:
+                                            info['plotoutline'] = epg_text
+                                            info['plot'] = epg_text
+                                        else:
+                                            firstpgm = epg_lines[0].split(" - ", 1)[1]
+                                            info = {'title': f"{item.get('title')}   [COLOR orange]{firstpgm}[/COLOR]",
+                                                    'plotoutline': epg_text,
+                                                    'plot': epg_text}
+                                            item['title'] = info['title']
+                            except (KeyError, TypeError):
+                                pass
+                except Exception as e:
+                    info = None
+
+                # Determine query mode based on item type
+                # Documentaries and Series should open series detail, not try to play directly
+                item_type = (item.get('type') or '').lower()
+                query = {'mode': 'play', 'id': item.get('id')}
+                is_folder = False
+
+                if item_type == 'series' or content_type.lower() == 'documentary':
+                    # Series and documentaries open as folders with series detail
+                    query = {'mode': 'series_detail', 'series_id': item.get('id')}
+                    is_folder = True
+                elif content_type.lower() == 'channels':
+                    query['fmt'] = 'live'
+
+                self._add_directory_item(item.get('title'), query, is_folder=is_folder, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_category'](content_type)

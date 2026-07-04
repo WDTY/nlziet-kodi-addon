@@ -27,7 +27,8 @@ def build_route_handlers(legacy_handlers, dependencies):
         dependencies['get_string'],
         dependencies['pick_landscape_thumb'],
         dependencies['make_color_tag'],
-        dependencies['expiry_color_raw']
+        dependencies['expiry_color_raw'],
+        dependencies['get_channels_menu_data']
     )
     mylist = MyListController(
         legacy_handlers,

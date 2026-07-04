@@ -2281,6 +2281,7 @@ def get_route_handlers():
         'pick_landscape_thumb': _pick_landscape_thumb,
         'make_color_tag': _make_color_tag,
         'expiry_color_raw': EXPIRY_COLOR_RAW,
+        'get_channels_menu_data': get_channels_menu_data,
         'get_string': get_string,
     })
 

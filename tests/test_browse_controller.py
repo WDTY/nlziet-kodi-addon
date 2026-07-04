@@ -10,6 +10,7 @@ class FakeBrowseApi:
         self.series_list_calls = 0
         self.episode_calls = []
         self.episodes = None
+        self.category_calls = []
 
     def get_series_by_genre(self, genre):
         self.genre_calls.append(('series', genre))
@@ -85,6 +86,25 @@ class FakeBrowseApi:
             'subtitle': 'S1:A2 Episode Subtitle',
             'description': 'Episode description',
         }]
+
+    def get_movies(self):
+        self.category_calls.append('movies')
+        return [{'id': 'm2', 'title': 'Movie Category', 'description': 'Movie description'}]
+
+    def get_videos(self):
+        self.category_calls.append('videos')
+        return [{'id': 'v1', 'title': 'Video Category'}]
+
+    def get_documentaries(self):
+        self.category_calls.append('documentary')
+        return [{'id': 'd1', 'title': 'Documentary Category', 'type': 'series'}]
+
+    def get_content_detail(self, content_id):
+        return {'title': 'Detailed Title', 'description': 'Detailed description'}
+
+    def search(self, query, content_type=None):
+        self.category_calls.append(('search', query, content_type))
+        return [{'id': 'x1', 'title': 'Search Category'}]
 
 
 def test_movie_genre_adds_playable_items_without_network(kodi_recorder):
@@ -313,3 +333,74 @@ def test_series_season_missing_series_id_notifies(fake_addon, kodi_recorder):
     ).series_season('', 'season-1')
 
     assert kodi_recorder.notifications == [('NLZiet', 'missing_series_id', 'error')]
+
+
+def test_category_movies_adds_playable_items_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        65,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+        lambda api_instance: ([], {}),
+    ).category('movies')
+
+    assert api.category_calls == ['movies']
+    assert added[0][0][0] == 'Movie Category'
+    assert added[0][0][1] == {'mode': 'play', 'id': 'm2'}
+    assert added[0][1]['is_folder'] is False
+    assert kodi_recorder.ended == [65]
+
+
+def test_category_documentary_adds_series_folder_without_network(fake_addon):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        66,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+        lambda api_instance: ([], {}),
+    ).category('documentary')
+
+    assert api.category_calls == ['documentary']
+    assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 'd1'}
+    assert added[0][1]['is_folder'] is True
+
+
+def test_category_channels_adds_live_play_items_without_network(fake_addon):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        67,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+        lambda api_instance: ([{'id': 'c1', 'title': 'Channel'}], {}),
+    ).category('channels')
+
+    assert added[0][0][0] == 'Channel'
+    assert added[0][0][1] == {'mode': 'play', 'id': 'c1', 'fmt': 'live'}
+    assert added[0][1]['is_folder'] is False
