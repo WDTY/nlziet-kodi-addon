@@ -17,6 +17,14 @@ except ImportError:
 
 from resources.lib.nlziet_api import NLZietAPI
 from resources.lib.app_context import AddonContext
+from resources.lib.controllers import (
+    AuthController,
+    BrowseController,
+    MyListController,
+    PlaybackController,
+    ProfileController,
+    SearchController,
+)
 from resources.lib.router import Router
 
 ADDON = xbmcaddon.Addon()
@@ -2849,7 +2857,7 @@ def select_iptv_channels():
 
 
 def get_route_handlers():
-    return {
+    legacy_handlers = {
         'main_menu': main_menu,
         'do_login': do_login,
         'do_search': do_search,
@@ -2876,6 +2884,40 @@ def get_route_handlers():
         'browse_category': browse_category,
         'play_item': play_item,
         'select_iptv_channels': select_iptv_channels,
+    }
+    auth = AuthController(legacy_handlers)
+    browse = BrowseController(legacy_handlers)
+    mylist = MyListController(legacy_handlers)
+    playback = PlaybackController(legacy_handlers)
+    profile = ProfileController(legacy_handlers)
+    search = SearchController(legacy_handlers)
+    return {
+        'main_menu': browse.main_menu,
+        'do_login': auth.login,
+        'do_search': search.search,
+        'manage_profiles': profile.manage,
+        'browse_my_list': mylist.list,
+        'browse_my_list_group': mylist.group,
+        'toggle_mylist': mylist.toggle,
+        'select_profile': profile.select,
+        'apply_profile': profile.apply,
+        'browse_series': browse.series,
+        'do_logout': auth.logout,
+        'confirm_logout': auth.confirm_logout,
+        'refresh_account_info': auth.account_summary,
+        'search_group': search.group,
+        'show_series_detail': browse.series_detail,
+        'show_series_season': browse.series_season,
+        'browse_placement_row': browse.placement_row,
+        'browse_tv_shows': browse.tv_shows,
+        'browse_tv_genre': browse.tv_genre,
+        'browse_series_categories': browse.series_categories,
+        'browse_series_genre': browse.series_genre,
+        'browse_movie_categories': browse.movie_categories,
+        'browse_movie_genre': browse.movie_genre,
+        'browse_category': browse.category,
+        'play_item': playback.play,
+        'select_iptv_channels': legacy_handlers['select_iptv_channels'],
     }
 
 
