@@ -77,6 +77,66 @@ class MyListController:
         return self._handlers['browse_my_list']()
 
     def group(self, group):
+        if (
+            self._addon
+            and self._get_api_instance
+            and self._api_class
+            and self._add_directory_item
+            and self._get_string
+        ):
+            username = self._addon.getSetting('username')
+            password = self._addon.getSetting('password')
+            # Use cached API instance for faster group loading
+            try:
+                api = self._get_api_instance()
+            except Exception:
+                api = self._api_class(username=username, password=password)
+            try:
+                items = api.get_my_list() or []
+            except Exception:
+                items = []
+
+            if not items:
+                xbmcgui.Dialog().notification('NLZiet', 'My List is empty', xbmcgui.NOTIFICATION_INFO)
+                xbmcplugin.endOfDirectory(self._handle)
+                return
+
+            filtered = []
+            for itm in items:
+                try:
+                    typ = (itm.get('type') or '').lower()
+                    if group == 'Series' and ('series' in typ or 'tvshow' in typ):
+                        filtered.append(itm)
+                    elif group == 'Movies' and ('movie' in typ or 'film' in typ):
+                        filtered.append(itm)
+                    elif group == 'Other' and not ('series' in typ or 'tvshow' in typ or 'movie' in typ or 'film' in typ):
+                        filtered.append(itm)
+                except Exception:
+                    continue
+
+            if not filtered:
+                no_items_text = self._get_string('no_items_for_group') or 'No items found for {}'
+                xbmcgui.Dialog().notification('NLZiet', no_items_text.format(group), xbmcgui.NOTIFICATION_INFO)
+                xbmcplugin.endOfDirectory(self._handle)
+                return
+
+            for itm in filtered:
+                try:
+                    title = itm.get('title') or itm.get('name') or itm.get('id') or 'Item'
+                    thumb = itm.get('thumb') or itm.get('posterUrl') or None
+                    typ = (itm.get('type') or '').lower()
+                    if 'series' in typ or 'tvshow' in typ:
+                        self._add_directory_item(title, {'mode': 'series_detail', 'series_id': itm.get('id')}, is_folder=True, thumb=thumb, content=itm)
+                    elif 'episode' in typ:
+                        self._add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
+                    elif 'movie' in typ or 'film' in typ:
+                        self._add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
+                    else:
+                        self._add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
+                except Exception:
+                    continue
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_my_list_group'](group)
 
     def toggle(self, item_id, title, content_type, thumb):

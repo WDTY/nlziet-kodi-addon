@@ -1297,58 +1297,16 @@ def browse_my_list():
 
 def browse_my_list_group(group):
     """Show items from the user's My List filtered to a single group."""
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance for faster group loading
-    try:
-        api = get_api_instance()
-    except Exception:
-        api = NLZietAPI(username=username, password=password)
-    try:
-        items = api.get_my_list() or []
-    except Exception:
-        items = []
-
-    if not items:
-        xbmcgui.Dialog().notification('NLZiet', 'My List is empty', xbmcgui.NOTIFICATION_INFO)
-        xbmcplugin.endOfDirectory(HANDLE)
-        return
-
-    filtered = []
-    for itm in items:
-        try:
-            typ = (itm.get('type') or '').lower()
-            if group == 'Series' and ('series' in typ or 'tvshow' in typ):
-                filtered.append(itm)
-            elif group == 'Movies' and ('movie' in typ or 'film' in typ):
-                filtered.append(itm)
-            elif group == 'Other' and not ('series' in typ or 'tvshow' in typ or 'movie' in typ or 'film' in typ):
-                filtered.append(itm)
-        except Exception:
-            continue
-
-    if not filtered:
-        no_items_text = get_string('no_items_for_group') or 'No items found for {}'
-        xbmcgui.Dialog().notification('NLZiet', no_items_text.format(group), xbmcgui.NOTIFICATION_INFO)
-        xbmcplugin.endOfDirectory(HANDLE)
-        return
-
-    for itm in filtered:
-        try:
-            title = itm.get('title') or itm.get('name') or itm.get('id') or 'Item'
-            thumb = itm.get('thumb') or itm.get('posterUrl') or None
-            typ = (itm.get('type') or '').lower()
-            if 'series' in typ or 'tvshow' in typ:
-                add_directory_item(title, {'mode': 'series_detail', 'series_id': itm.get('id')}, is_folder=True, thumb=thumb, content=itm)
-            elif 'episode' in typ:
-                add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
-            elif 'movie' in typ or 'film' in typ:
-                add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
-            else:
-                add_directory_item(title, {'mode': 'play', 'id': itm.get('id')}, is_folder=False, thumb=thumb, content=itm)
-        except Exception:
-            continue
-    xbmcplugin.endOfDirectory(HANDLE)
+    return MyListController(
+        {},
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        get_string
+    ).group(group)
 
 
 def toggle_mylist(item_id=None, title=None, type=None, thumb=None):
