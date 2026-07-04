@@ -1,8 +1,112 @@
+import os
 import urllib.parse
+
+import xbmc
+import xbmcgui
+import xbmcplugin
 
 
 def build_url(base_url, query):
     return base_url + '?' + urllib.parse.urlencode(query)
+
+
+def add_directory_item(addon, handle, build_url_func, api_instance_getter,
+                       title, query, is_folder=True, thumb=None, info=None,
+                       content=None):
+    url = build_url_func(query)
+    li = xbmcgui.ListItem(label=title, offscreen=True)
+
+    # Set background image on each item for skin display
+    try:
+        addon_path = xbmc.translatePath(addon.getAddonInfo('path')) or addon.getAddonInfo('path') or ''
+        background_path = os.path.join(addon_path, 'resources', 'media', 'background.jpg')
+        if os.path.exists(background_path):
+            li.setArt({'fanart': background_path})
+    except Exception:
+        pass
+
+    if thumb or content:
+        # Use smart artwork assignment to respect aspect ratios
+        # Prevents face-cutting and image stretching by assigning portraits to poster, landscapes to fanart
+        set_smart_artwork(li, content, thumb=thumb)
+
+    # For live TV (fmt='live'), display EPG without context menu options
+    is_live = isinstance(query, dict) and query.get('fmt') == 'live'
+
+    if info:
+        if is_live:
+            # For live TV, set video info to display EPG, but don't track resume points
+            # Clear any bookmark/resume data so context menu doesn't appear
+            info_copy = info.copy()
+            info_copy.pop('resume', None)  # Remove any resume position
+            li.setInfo('video', info_copy)
+        else:
+            # For on-demand content, set full video info (allows resume functionality)
+            li.setInfo('video', info)
+            try:
+                short = info.get('plotoutline') or info.get('plot') or ''
+                if short:
+                    li.setLabel2(short)
+            except Exception:
+                pass
+    # mark non-folder items as playable so Enter/Select triggers playback
+    if not is_folder:
+        li.setProperty('IsPlayable', 'true')
+
+    # For live TV, prevent Kodi from showing resume/playback context menu
+    if is_live:
+        li.setProperty('ResumeTime', '0')
+        li.setProperty('TotalTime', '3600')
+        li.setProperty('IsLive', 'true')  # Mark as live for skin awareness
+    # Add context-menu entry for My List when we can determine a content id
+    try:
+        content_id = None
+        content_type = None
+        # Prefer explicit content dict when provided
+        if content and isinstance(content, dict):
+            content_id = content.get('id') or content.get('contentId') or content.get('content_id') or content.get('seriesId') or content.get('movieId') or content.get('assetId')
+            content_type = content.get('type') or content.get('contentType') or None
+        # Fallback: inspect the query params for common id keys
+        if not content_id and isinstance(query, dict):
+            for k in ('id', 'series_id', 'seriesId', 'movieId', 'contentId', 'content_id'):
+                if k in query and query.get(k):
+                    content_id = query.get(k)
+                    break
+        # Only allow My List for top-level Series or Movies (no Seasons/Episodes)
+        allow_mylist = False
+        if content and isinstance(content, dict):
+            ctype = (content_type or '')
+            ctype_l = (str(ctype).lower() if ctype else '')
+            if any(x in ctype_l for x in ('series', 'tvshow', 'movie', 'film')):
+                allow_mylist = True
+        elif isinstance(query, dict):
+            mode = (query.get('mode') or '').lower()
+            # treat explicit series_detail as a series entry
+            if mode == 'series_detail' and (query.get('series_id') or query.get('seriesId')):
+                allow_mylist = True
+
+        if allow_mylist and content_id:
+            try:
+                # Use cached API instance instead of creating new ones for every item
+                api_tmp = api_instance_getter()
+                in_list = api_tmp.is_in_my_list(content_id)
+            except Exception:
+                in_list = False
+
+            cm_label = 'Remove from My List' if in_list else 'Add to My List'
+            cm_query = {'mode': 'toggle_mylist', 'id': str(content_id), 'title': title}
+            if content_type:
+                cm_query['type'] = content_type
+            if thumb:
+                cm_query['thumb'] = thumb
+            try:
+                cm_url = build_url_func(cm_query)
+                li.addContextMenuItems([(cm_label, f"RunPlugin({cm_url})")])
+            except Exception:
+                pass
+    except Exception:
+        pass
+    xbmcplugin.addDirectoryItem(handle, url, li, isFolder=is_folder)
 
 
 def optimize_image_url(url):
