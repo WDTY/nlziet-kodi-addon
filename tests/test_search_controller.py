@@ -1,4 +1,23 @@
 from resources.lib.controllers.search_controller import SearchController
+import xbmc
+
+
+class FakeKeyboard:
+    confirmed = True
+    text = ''
+
+    def __init__(self, default, heading):
+        self.default = default
+        self.heading = heading
+
+    def doModal(self):
+        return None
+
+    def isConfirmed(self):
+        return self.confirmed
+
+    def getText(self):
+        return self.text
 
 
 class FakeSearchApi:
@@ -43,6 +62,12 @@ def _controller(fake_addon, api, added):
     )
 
 
+def _set_keyboard(monkeypatch, confirmed=True, text='query'):
+    FakeKeyboard.confirmed = confirmed
+    FakeKeyboard.text = text
+    monkeypatch.setattr(xbmc, 'Keyboard', FakeKeyboard, raising=False)
+
+
 def test_search_group_filters_matching_group_without_network(fake_addon, kodi_recorder):
     added = []
     api = FakeSearchApi([
@@ -80,3 +105,78 @@ def test_search_group_missing_query_notifies(fake_addon, kodi_recorder):
     _controller(fake_addon, FakeSearchApi(), []).group('', 'Movies')
 
     assert kodi_recorder.notifications == [('NLZiet', 'Missing search query', 'info')]
+
+
+def test_search_cancel_does_not_call_api(fake_addon, monkeypatch):
+    added = []
+    api = FakeSearchApi([{'id': 'm1', 'title': 'Movie', 'type': 'movie'}])
+    _set_keyboard(monkeypatch, confirmed=False, text='movie')
+
+    _controller(fake_addon, api, added).search()
+
+    assert api.search_calls == []
+    assert added == []
+
+
+def test_search_groups_multiple_result_types(fake_addon, kodi_recorder, monkeypatch):
+    added = []
+    api = FakeSearchApi([
+        {'id': 's1', 'title': 'Series Result', 'type': 'series'},
+        {'id': 'm1', 'title': 'Movie Result', 'type': 'movie'},
+    ])
+    _set_keyboard(monkeypatch, text='mix')
+
+    _controller(fake_addon, api, added).search()
+
+    assert [call[0][0] for call in added] == ['Series: 1 found', 'Movies: 1 found']
+    assert added[0][0][1] == {'mode': 'search_group', 'q': 'mix', 'group': 'Series'}
+    assert added[1][0][1] == {'mode': 'search_group', 'q': 'mix', 'group': 'Movies'}
+    assert all(call[1]['is_folder'] is True for call in added)
+    assert kodi_recorder.ended == [70]
+
+
+def test_search_single_group_adds_direct_results(fake_addon, kodi_recorder, monkeypatch):
+    added = []
+    api = FakeSearchApi([
+        {'id': 'm1', 'title': 'Movie Result', 'type': 'movie', 'description': 'Description'},
+    ])
+    _set_keyboard(monkeypatch, text='movie')
+
+    _controller(fake_addon, api, added).search()
+
+    assert added[0][0][0] == 'Movies: Movie Result'
+    assert added[0][0][1] == {'mode': 'play', 'id': 'm1'}
+    assert added[0][1]['is_folder'] is False
+    assert kodi_recorder.ended == [70]
+
+
+def test_search_uses_fallback_results(fake_addon, monkeypatch):
+    added = []
+    api = FakeSearchApi([])
+    _set_keyboard(monkeypatch, text='needle')
+
+    _controller(fake_addon, api, added).search()
+
+    assert api.series_calls == [999]
+    assert api.movie_calls == 1
+    assert api.channel_calls == 1
+    assert [call[0][0] for call in added] == [
+        'Series: 1 found',
+        'Movies: 1 found',
+        'Channels: 1 found',
+    ]
+
+
+def test_search_no_results_notifies(fake_addon, kodi_recorder, monkeypatch):
+    added = []
+    api = FakeSearchApi([])
+    api.get_series_list = lambda limit=None: []
+    api.get_movies = lambda: []
+    api.get_channels = lambda: []
+    _set_keyboard(monkeypatch, text='nothing')
+
+    _controller(fake_addon, api, added).search()
+
+    assert added == []
+    assert kodi_recorder.notifications == [('NLZiet', 'No results for "nothing"', 'info')]
+    assert kodi_recorder.ended == [70]
