@@ -18,15 +18,8 @@ except ImportError:
 from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import account_summary
 from resources.lib.app_context import AddonContext
-from resources.lib.controllers import (
-    AuthController,
-    BrowseController,
-    IPTVController,
-    MyListController,
-    PlaybackController,
-    ProfileController,
-    SearchController,
-)
+from resources.lib.controller_factory import build_route_handlers
+from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController
 from resources.lib.kodi import ui as kodi_ui
 from resources.lib.router import Router
 
@@ -2310,61 +2303,15 @@ def get_route_handlers():
         'play_item': play_item,
         'select_iptv_channels': select_iptv_channels,
     }
-    auth = AuthController(
-        legacy_handlers,
-        get_string,
-        ADDON,
-        get_api_instance,
-        NLZietAPI
-    )
-    browse = BrowseController(
-        legacy_handlers,
-        HANDLE,
-        get_api_instance,
-        add_directory_item
-    )
-    mylist = MyListController(
-        legacy_handlers,
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        get_string
-    )
-    iptv = IPTVController(get_api_instance)
-    playback = PlaybackController(legacy_handlers)
-    profile = ProfileController(legacy_handlers)
-    search = SearchController(legacy_handlers)
-    return {
-        'main_menu': browse.main_menu,
-        'do_login': auth.login,
-        'do_search': search.search,
-        'manage_profiles': profile.manage,
-        'browse_my_list': mylist.list,
-        'browse_my_list_group': mylist.group,
-        'toggle_mylist': mylist.toggle,
-        'select_profile': profile.select,
-        'apply_profile': profile.apply,
-        'browse_series': browse.series,
-        'do_logout': auth.logout,
-        'confirm_logout': auth.confirm_logout,
-        'refresh_account_info': auth.account_summary,
-        'search_group': search.group,
-        'show_series_detail': browse.series_detail,
-        'show_series_season': browse.series_season,
-        'browse_placement_row': browse.placement_row,
-        'browse_tv_shows': browse.tv_shows,
-        'browse_tv_genre': browse.tv_genre,
-        'browse_series_categories': browse.series_categories,
-        'browse_series_genre': browse.series_genre,
-        'browse_movie_categories': browse.movie_categories,
-        'browse_movie_genre': browse.movie_genre,
-        'browse_category': browse.category,
-        'play_item': playback.play,
-        'select_iptv_channels': iptv.select_channels,
-    }
+    return build_route_handlers(legacy_handlers, {
+        'addon': ADDON,
+        'handle': HANDLE,
+        'get_api_instance': get_api_instance,
+        'api_class': NLZietAPI,
+        'add_directory_item': add_directory_item,
+        'pick_landscape_thumb': _pick_landscape_thumb,
+        'get_string': get_string,
+    })
 
 
 def router(paramstring):
