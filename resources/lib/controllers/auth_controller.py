@@ -15,7 +15,37 @@ class AuthController:
         return self._handlers['do_logout'](keep_mylist=keep_mylist)
 
     def confirm_logout(self):
-        return self._handlers['confirm_logout']()
+        """Show confirmation dialogs before performing logout."""
+        d = xbmcgui.Dialog()
+        msg = self._get_string('logout_confirm_msg')
+        try:
+            ok = d.yesno('NLZiet', msg, yeslabel=self._get_string('logout_btn'), nolabel=self._get_string('cancel_btn'))
+        except Exception:
+            try:
+                ok = d.yesno('NLZiet', msg)
+            except Exception:
+                ok = False
+
+        if not ok:
+            try:
+                xbmcgui.Dialog().notification('NLZiet', self._get_string('logout_cancelled'), xbmcgui.NOTIFICATION_INFO)
+            except Exception:
+                pass
+            return
+
+        # Confirmed logout - now ask about My List
+        keep_mylist = False
+        try:
+            keep = d.yesno('NLZiet', self._get_string('keep_mylist'), yeslabel=self._get_string('keep_mylist_btn'), nolabel=self._get_string('clear_mylist_btn'))
+            keep_mylist = keep
+        except Exception:
+            try:
+                keep = d.yesno('NLZiet', self._get_string('keep_mylist'))
+                keep_mylist = keep
+            except Exception:
+                pass
+
+        self._handlers['do_logout'](keep_mylist=keep_mylist)
 
     def account_summary(self):
         return self._handlers['refresh_account_info']()

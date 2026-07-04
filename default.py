@@ -1066,36 +1066,7 @@ def confirm_logout():
     
     First asks to confirm logout, then asks whether to keep My List.
     """
-    d = xbmcgui.Dialog()
-    msg = get_string('logout_confirm_msg')
-    try:
-        ok = d.yesno('NLZiet', msg, yeslabel=get_string('logout_btn'), nolabel=get_string('cancel_btn'))
-    except Exception:
-        try:
-            ok = d.yesno('NLZiet', msg)
-        except Exception:
-            ok = False
-    
-    if not ok:
-        try:
-            xbmcgui.Dialog().notification('NLZiet', get_string('logout_cancelled'), xbmcgui.NOTIFICATION_INFO)
-        except Exception:
-            pass
-        return
-    
-    # Confirmed logout - now ask about My List
-    keep_mylist = False
-    try:
-        keep = d.yesno('NLZiet', get_string('keep_mylist'), yeslabel=get_string('keep_mylist_btn'), nolabel=get_string('clear_mylist_btn'))
-        keep_mylist = keep
-    except Exception:
-        try:
-            keep = d.yesno('NLZiet', get_string('keep_mylist'))
-            keep_mylist = keep
-        except Exception:
-            pass
-    
-    do_logout(keep_mylist=keep_mylist)
+    return AuthController(get_route_handlers(), get_string).confirm_logout()
 
 
 def show_login_dialog(preset_email='', preset_password=''):
