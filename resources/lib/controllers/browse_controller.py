@@ -61,6 +61,76 @@ class BrowseController:
         return self._handlers['show_series_season'](series_id, season_id)
 
     def placement_row(self, items_url, placement_id, comp_index):
+        if (self._addon and self._get_api_instance and self._api_class
+                and self._add_directory_item and self._get_string
+                and self._pick_landscape_thumb and self._make_color_tag
+                and self._expiry_color_raw):
+            username = self._addon.getSetting('username')
+            password = self._addon.getSetting('password')
+            # Use cached API instance for faster placement loading
+            try:
+                api = self._get_api_instance()
+            except Exception:
+                api = self._api_class(username=username, password=password)
+            items = []
+
+            # Direct items URL
+            if items_url:
+                try:
+                    items = api.get_items_from_url(items_url) or []
+                except Exception:
+                    items = []
+            # Fallback: fetch placement and use inline items by index
+            elif placement_id is not None and comp_index is not None:
+                try:
+                    comps = api.get_placement_rows(placement_id) or []
+                    idx = int(comp_index)
+                    comp = comps[idx] if 0 <= idx < len(comps) else None
+                    if comp:
+                        if isinstance(comp.get('items'), list) and comp.get('items'):
+                            for itm in comp.get('items'):
+                                src = itm.get('item') if isinstance(itm, dict) and itm.get('item') else itm.get('content') if isinstance(itm, dict) and itm.get('content') else itm
+                                if isinstance(src, dict):
+                                    items.append(src)
+                        else:
+                            u = comp.get('itemsUrl') or comp.get('url') or (comp.get('link', {}) or {}).get('href')
+                            if u:
+                                items = api.get_items_from_url(u) or []
+                except Exception:
+                    items = []
+
+            if not items:
+                xbmcgui.Dialog().notification('NLZiet', self._get_string('no_items_found'), xbmcgui.NOTIFICATION_INFO)
+                return
+
+            for src in items:
+                try:
+                    content_id = src.get('id') or src.get('contentId') or src.get('content_id') or src.get('seriesId') or src.get('movieId') or src.get('assetId')
+                    title = src.get('title') or src.get('name') or ''
+                    thumb = self._pick_landscape_thumb(src)
+                    desc = src.get('description') or src.get('summary') or ''
+                    info = None
+                    if desc:
+                        expiry_text = src.get('expires_in') or None
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        plot_full = desc
+                        po = truncated
+                        if expiry_text:
+                            marker = 'ðŸ”¶ '
+                            colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                            plot_full = f"{colored}\n{desc}" if desc else colored
+                            po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                        info = {'title': title, 'plot': plot_full, 'plotoutline': po}
+
+                    if content_id:
+                        # Treat as series when possible
+                        self._add_directory_item(title, {'mode': 'series_detail', 'series_id': content_id}, is_folder=True, thumb=thumb, info=info, content=src)
+                    else:
+                        self._add_directory_item(title, {'mode': 'play', 'id': src.get('playUrl') or src.get('streamUrl') or src.get('id')}, is_folder=False, thumb=thumb, info=info, content=src)
+                except Exception:
+                    continue
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_placement_row'](
             items_url,
             placement_id,

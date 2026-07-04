@@ -4,6 +4,8 @@ from resources.lib.controllers.browse_controller import BrowseController
 class FakeBrowseApi:
     def __init__(self):
         self.genre_calls = []
+        self.item_url_calls = []
+        self.placement_calls = []
 
     def get_series_by_genre(self, genre):
         self.genre_calls.append(('series', genre))
@@ -38,6 +40,26 @@ class FakeBrowseApi:
                 'type': 'series',
             },
         ]
+
+    def get_items_from_url(self, url):
+        self.item_url_calls.append(url)
+        return [{
+            'id': 'u1',
+            'title': 'URL Item',
+            'description': 'Description',
+        }]
+
+    def get_placement_rows(self, placement_id):
+        self.placement_calls.append(placement_id)
+        return [{
+            'items': [{
+                'item': {
+                    'seriesId': 'p1',
+                    'title': 'Placement Item',
+                    'summary': 'Summary',
+                },
+            }],
+        }]
 
 
 def test_movie_genre_adds_playable_items_without_network(kodi_recorder):
@@ -106,3 +128,51 @@ def test_tv_genre_routes_series_as_folders_without_network(kodi_recorder):
     assert added[1][0][1] == {'mode': 'series_detail', 'series_id': 's2'}
     assert added[1][1]['is_folder'] is True
     assert kodi_recorder.ended == [57]
+
+
+def test_placement_row_uses_direct_items_url_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        58,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+    ).placement_row('https://example.test/items', None, None)
+
+    assert api.item_url_calls == ['https://example.test/items']
+    assert added[0][0][0] == 'URL Item'
+    assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 'u1'}
+    assert added[0][1]['is_folder'] is True
+    assert kodi_recorder.ended == [58]
+
+
+def test_placement_row_uses_inline_items_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+
+    BrowseController(
+        {},
+        59,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item.get('id', item.get('seriesId')),
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+    ).placement_row(None, 'explore-series', '0')
+
+    assert api.placement_calls == ['explore-series']
+    assert added[0][0][0] == 'Placement Item'
+    assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 'p1'}
+    assert added[0][1]['is_folder'] is True
+    assert kodi_recorder.ended == [59]
