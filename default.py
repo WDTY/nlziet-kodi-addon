@@ -1390,6 +1390,20 @@ def apply_profile():
 
 
 def do_search():
+    return SearchController(
+        {},
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW
+    ).search()
+
+
+def _legacy_do_search():
     kb = xbmc.Keyboard('', 'Search NLZiet')
     kb.doModal()
     if not kb.isConfirmed():
