@@ -1299,6 +1299,20 @@ def toggle_mylist(item_id=None, title=None, type=None, thumb=None):
 
 
 def select_profile(profile_id):
+    return ProfileController(
+        {'manage_profiles': manage_profiles},
+        ADDON,
+        get_api_instance,
+        NLZietAPI,
+        build_url,
+        HANDLE,
+        add_directory_item,
+        _make_color_tag,
+        get_string
+    ).select(profile_id)
+
+
+def _legacy_select_profile(profile_id):
     """Activate the given profile id and re-render the profiles list."""
     if not profile_id:
         xbmcgui.Dialog().notification('NLZiet', 'Missing profile id', xbmcgui.NOTIFICATION_ERROR)
