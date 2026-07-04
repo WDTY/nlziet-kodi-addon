@@ -47,7 +47,11 @@ def build_route_handlers(legacy_handlers, dependencies):
         dependencies['addon'],
         dependencies['get_api_instance'],
         dependencies['api_class'],
-        dependencies['build_url']
+        dependencies['build_url'],
+        dependencies['handle'],
+        dependencies['add_directory_item'],
+        dependencies['make_color_tag'],
+        dependencies['get_string']
     )
     search = SearchController(
         legacy_handlers,
