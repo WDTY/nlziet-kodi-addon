@@ -940,49 +940,13 @@ def _format_date_string(dtstr):
 
 
 def refresh_account_info(notify=True):
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance to avoid repeated disk I/O and initialization overhead
-    try:
-        api = get_api_instance()
-    except Exception:
-        # Fallback to creating a new instance if cache fails
-        api = NLZietAPI(username=username, password=password)
-    summary = api.get_customer_summary() or {}
-
-    subscription = _extract_subscription_name(summary) or ''
-    subscription_type = _extract_subscription_type(summary) or ''
-    max_devices = _extract_max_devices(summary) or ''
-    subscription_expires = _extract_subscription_expiry(summary) or ''
-
-    try:
-        ADDON.setSetting('subscription_name', subscription)
-        ADDON.setSetting('subscription_type', subscription_type)
-        ADDON.setSetting('max_devices', max_devices)
-        ADDON.setSetting('subscription_expires', subscription_expires)
-    except Exception:
-        pass
-
-    display_values = []
-    if subscription:
-        display_values.append(f"{get_string('subscription_label')}: {subscription}")
-    if subscription_type:
-        display_values.append(f"{get_string('subscription_type_label')}: {subscription_type}")
-    if max_devices:
-        display_values.append(f"{get_string('max_devices_label')}: {max_devices}")
-    if subscription_expires:
-        display_values.append(f"{get_string('expires_label')}: {subscription_expires}")
-
-    if notify:
-        if display_values:
-            xbmcgui.Dialog().ok('NLZiet', (get_string('account_updated') or 'Account updated') + '\n' + '\n'.join(display_values))
-        else:
-            xbmcgui.Dialog().ok('NLZiet', get_string('account_parse_error') or 'Account info could not be parsed')
-    else:
-        if display_values:
-            xbmc.log('NLZiet: Account info updated: ' + ', '.join(display_values), xbmc.LOGDEBUG)
-        else:
-            xbmc.log('NLZiet: Account info could not be parsed', xbmc.LOGDEBUG)
+    return AuthController(
+        {},
+        get_string,
+        ADDON,
+        get_api_instance,
+        NLZietAPI
+    ).refresh_account_info(notify=notify)
 
 
 def do_logout(keep_mylist=False):
@@ -2463,7 +2427,13 @@ def get_route_handlers():
         'play_item': play_item,
         'select_iptv_channels': select_iptv_channels,
     }
-    auth = AuthController(legacy_handlers, get_string)
+    auth = AuthController(
+        legacy_handlers,
+        get_string,
+        ADDON,
+        get_api_instance,
+        NLZietAPI
+    )
     browse = BrowseController(
         legacy_handlers,
         HANDLE,
