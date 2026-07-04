@@ -26,6 +26,78 @@ class BrowseController:
         return self._handlers['main_menu']()
 
     def series(self):
+        if (self._addon and self._get_api_instance and self._api_class
+                and self._add_directory_item and self._pick_landscape_thumb
+                and self._make_color_tag and self._expiry_color_raw):
+            username = self._addon.getSetting('username')
+            password = self._addon.getSetting('password')
+            # Use cached API instance for faster menu navigation
+            try:
+                api = self._get_api_instance()
+            except Exception:
+                api = self._api_class(username=username, password=password)
+
+            # Prefer placement rows (home/explore layout) when available
+            try:
+                comps = api.get_placement_rows('explore-series') or []
+            except Exception:
+                comps = []
+
+            if comps:
+                for idx, comp in enumerate(comps):
+                    try:
+                        comp_title = comp.get('title') or comp.get('name') or comp.get('id') or f"Row {idx+1}"
+                        # Skip placement rows we don't want in the Series submenu
+                        try:
+                            comp_id = comp.get('id') or comp.get('placementId') or comp.get('name') or ''
+                        except Exception:
+                            comp_id = ''
+                        lower_title = str(comp_title).strip().lower()
+                        if lower_title == 'series' or str(comp_id).lower() == 'explore-series-genres':
+                            continue
+                        items_url = comp.get('itemsUrl') or comp.get('url') or (comp.get('link', {}) or {}).get('href') if isinstance(comp.get('link', {}), dict) else comp.get('itemsUrl')
+                        # Provide a folder that opens the row contents. If the component
+                        # exposes an itemsUrl we pass it directly; otherwise we pass the
+                        # placement id + index so the handler can re-fetch inline items.
+                        query = {'mode': 'placement_row'}
+                        if items_url:
+                            query['items_url'] = items_url
+                        else:
+                            query['placement_id'] = 'explore-series'
+                            query['comp_index'] = str(idx)
+                        self._add_directory_item(comp_title, query, is_folder=True)
+                    except Exception:
+                        continue
+                xbmcplugin.endOfDirectory(self._handle)
+                return
+
+            # Fallback: simple series list when placements are unavailable
+            results = api.get_series_list()
+            for item in results:
+                info = None
+                try:
+                    desc = item.get('description') or item.get('subtitle') or ''
+                    if desc:
+                        title_for_info = item.get('title') or ''
+                        expiry_text = item.get('expires_in') or None
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        plot_full = desc
+                        po = truncated
+                        if expiry_text:
+                            marker = 'ðŸ”¶ '
+                            colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                            plot_full = f"{colored}\n{desc}" if desc else colored
+                            po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                except Exception:
+                    info = None
+                self._add_directory_item(item.get('title') or item.get('id') or 'Series', {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_series']()
 
     def series_detail(self, series_id):

@@ -6,6 +6,8 @@ class FakeBrowseApi:
         self.genre_calls = []
         self.item_url_calls = []
         self.placement_calls = []
+        self.placement_rows = None
+        self.series_list_calls = 0
 
     def get_series_by_genre(self, genre):
         self.genre_calls.append(('series', genre))
@@ -51,6 +53,8 @@ class FakeBrowseApi:
 
     def get_placement_rows(self, placement_id):
         self.placement_calls.append(placement_id)
+        if self.placement_rows is not None:
+            return self.placement_rows
         return [{
             'items': [{
                 'item': {
@@ -59,6 +63,14 @@ class FakeBrowseApi:
                     'summary': 'Summary',
                 },
             }],
+        }]
+
+    def get_series_list(self):
+        self.series_list_calls += 1
+        return [{
+            'id': 's3',
+            'title': 'Fallback Series',
+            'description': 'Description',
         }]
 
 
@@ -176,3 +188,58 @@ def test_placement_row_uses_inline_items_without_network(fake_addon, kodi_record
     assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 'p1'}
     assert added[0][1]['is_folder'] is True
     assert kodi_recorder.ended == [59]
+
+
+def test_series_prefers_placement_rows_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+    api.placement_rows = [
+        {'title': 'Series', 'id': 'skip-this'},
+        {'title': 'Genre row', 'id': 'explore-series-genres'},
+        {'title': 'Drama', 'itemsUrl': 'https://example.test/drama'},
+        {'title': 'Inline'},
+    ]
+
+    BrowseController(
+        {},
+        60,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+    ).series()
+
+    assert api.placement_calls == ['explore-series']
+    assert [call[0][0] for call in added] == ['Drama', 'Inline']
+    assert added[0][0][1] == {'mode': 'placement_row', 'items_url': 'https://example.test/drama'}
+    assert added[1][0][1] == {'mode': 'placement_row', 'placement_id': 'explore-series', 'comp_index': '3'}
+    assert kodi_recorder.ended == [60]
+
+
+def test_series_falls_back_to_series_list_without_network(fake_addon, kodi_recorder):
+    added = []
+    api = FakeBrowseApi()
+    api.placement_rows = []
+
+    BrowseController(
+        {},
+        61,
+        lambda: api,
+        lambda *args, **kwargs: added.append((args, kwargs)),
+        fake_addon,
+        lambda **kwargs: api,
+        lambda key, *args: key,
+        lambda item: 'thumb:' + item['id'],
+        lambda color, text: f"[{color}]{text}",
+        'FFFFFFFF',
+    ).series()
+
+    assert api.series_list_calls == 1
+    assert added[0][0][0] == 'Fallback Series'
+    assert added[0][0][1] == {'mode': 'series_detail', 'series_id': 's3'}
+    assert added[0][1]['is_folder'] is True
+    assert kodi_recorder.ended == [61]
