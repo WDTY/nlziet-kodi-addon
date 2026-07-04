@@ -1283,53 +1283,16 @@ def manage_profiles():
 
 
 def browse_my_list():
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance for faster list loading
-    try:
-        api = get_api_instance()
-    except Exception:
-        api = NLZietAPI(username=username, password=password)
-    try:
-        items = api.get_my_list() or []
-    except Exception:
-        items = []
-
-    if not items:
-        xbmcgui.Dialog().notification('NLZiet', get_string('my_list_empty'), xbmcgui.NOTIFICATION_INFO)
-        xbmcplugin.endOfDirectory(HANDLE)
-        return
-    # Group My List items into Series/Movies/Other so the My List top-level
-    # shows folders the user can open to view each category.
-    groups = {'Series': [], 'Movies': [], 'Other': []}
-    for itm in items:
-        try:
-            typ = (itm.get('type') or '').lower()
-            if 'series' in typ or 'tvshow' in typ:
-                groups['Series'].append(itm)
-            elif 'movie' in typ or 'film' in typ:
-                groups['Movies'].append(itm)
-            else:
-                groups['Other'].append(itm)
-        except Exception:
-            groups['Other'].append(itm)
-
-    # Present folders for each non-empty group (Series and Movies prioritized)
-    folder_order = ['Series', 'Movies', 'Other']
-    any_folder = False
-    for g in folder_order:
-        lst = groups.get(g) or []
-        if not lst:
-            continue
-        first = lst[0] if lst else None
-        thumb = _pick_landscape_thumb(first) if first else None
-        label = f"{g}: {len(lst)} found"
-        add_directory_item(label, {'mode': 'my_list_group', 'group': g}, is_folder=True, thumb=thumb)
-        any_folder = True
-
-    if not any_folder:
-        xbmcgui.Dialog().notification('NLZiet', get_string('my_list_empty'), xbmcgui.NOTIFICATION_INFO)
-    xbmcplugin.endOfDirectory(HANDLE)
+    return MyListController(
+        {},
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        get_string
+    ).list()
 
 
 def browse_my_list_group(group):
@@ -2440,7 +2403,16 @@ def get_route_handlers():
         get_api_instance,
         add_directory_item
     )
-    mylist = MyListController(legacy_handlers)
+    mylist = MyListController(
+        legacy_handlers,
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        get_string
+    )
     iptv = IPTVController(get_api_instance)
     playback = PlaybackController(legacy_handlers)
     profile = ProfileController(legacy_handlers)
