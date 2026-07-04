@@ -1108,20 +1108,10 @@ def show_login_dialog(preset_email='', preset_password=''):
     Returns:
         Tuple of (email, password) or (None, None) if cancelled
     """
-    dialog = xbmcgui.Dialog()
-    
-    # Get email from user (pre-filled if provided)
-    # dialog.input(heading, defaultText='', type=0)
-    email = dialog.input(get_string('login_dialog_email'), preset_email, type=0)
-    if not email:
-        return None, None
-    
-    # Get password from user (pre-filled if provided)
-    password = dialog.input(get_string('login_dialog_password'), preset_password, type=0)
-    if not password:
-        return None, None
-    
-    return email, password
+    return AuthController({}, get_string).show_login_dialog(
+        preset_email,
+        preset_password
+    )
 
 
 def do_login():
@@ -2502,7 +2492,7 @@ def get_route_handlers():
         'play_item': play_item,
         'select_iptv_channels': select_iptv_channels,
     }
-    auth = AuthController(legacy_handlers)
+    auth = AuthController(legacy_handlers, get_string)
     browse = BrowseController(
         legacy_handlers,
         HANDLE,
