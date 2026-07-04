@@ -43,7 +43,17 @@ def build_route_handlers(legacy_handlers, dependencies):
     iptv = IPTVController(dependencies['get_api_instance'])
     playback = PlaybackController(legacy_handlers)
     profile = ProfileController(legacy_handlers)
-    search = SearchController(legacy_handlers)
+    search = SearchController(
+        legacy_handlers,
+        dependencies['addon'],
+        dependencies['handle'],
+        dependencies['get_api_instance'],
+        dependencies['api_class'],
+        dependencies['add_directory_item'],
+        dependencies['pick_landscape_thumb'],
+        dependencies['make_color_tag'],
+        dependencies['expiry_color_raw']
+    )
     return {
         'main_menu': browse.main_menu,
         'do_login': auth.login,
