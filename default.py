@@ -1310,54 +1310,16 @@ def browse_my_list_group(group):
 
 
 def toggle_mylist(item_id=None, title=None, type=None, thumb=None):
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance to respond instantly to My List actions
-    try:
-        api = get_api_instance()
-    except Exception:
-        # Fallback to creating a new instance if cache fails
-        api = NLZietAPI(username=username, password=password)
-    if not item_id:
-        xbmcgui.Dialog().notification('NLZiet', get_string('missing_id_mylist'), xbmcgui.NOTIFICATION_ERROR)
-        return
-    # Defensive: only allow Series or Movies to be toggled
-    if type and isinstance(type, str):
-        tl = type.lower()
-        if not any(x in tl for x in ('series', 'tvshow', 'movie', 'film')):
-            xbmcgui.Dialog().notification('NLZiet', get_string('only_series_movies'), xbmcgui.NOTIFICATION_INFO)
-            return
-    else:
-        # try to detect content type from detail
-        try:
-            det = api.get_content_detail(item_id) or {}
-            raw_type = (det.get('raw') or {}).get('type') or det.get('type') or ''
-            if raw_type and not any(x in str(raw_type).lower() for x in ('series', 'tvshow', 'movie', 'film')):
-                xbmcgui.Dialog().notification('NLZiet', get_string('only_series_movies'), xbmcgui.NOTIFICATION_INFO)
-                return
-        except Exception:
-            pass
-    try:
-        itm = {'id': item_id, 'title': title, 'type': type, 'posterUrl': thumb}
-        if api.is_in_my_list(item_id):
-            removed = api.remove_from_my_list(item_id)
-            if removed:
-                xbmcgui.Dialog().notification('NLZiet', 'Removed from My List', xbmcgui.NOTIFICATION_INFO)
-            else:
-                xbmcgui.Dialog().notification('NLZiet', 'Failed to remove from My List', xbmcgui.NOTIFICATION_ERROR)
-        else:
-            added = api.add_to_my_list(itm)
-            if added:
-                xbmcgui.Dialog().notification('NLZiet', 'Added to My List', xbmcgui.NOTIFICATION_INFO)
-            else:
-                xbmcgui.Dialog().notification('NLZiet', 'Failed to add to My List', xbmcgui.NOTIFICATION_ERROR)
-    except Exception:
-        xbmcgui.Dialog().notification('NLZiet', 'My List action failed', xbmcgui.NOTIFICATION_ERROR)
-    # Refresh the current container so context menu changes reflect immediately
-    try:
-        xbmc.executebuiltin('Container.Refresh')
-    except Exception:
-        pass
+    return MyListController(
+        {},
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        add_directory_item,
+        _pick_landscape_thumb,
+        get_string
+    ).toggle(item_id, title, type, thumb)
 
 
 def select_profile(profile_id):
