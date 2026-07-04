@@ -1160,6 +1160,20 @@ def do_login():
 
 
 def manage_profiles():
+    return ProfileController(
+        {},
+        ADDON,
+        get_api_instance,
+        NLZietAPI,
+        build_url,
+        HANDLE,
+        add_directory_item,
+        _make_color_tag,
+        get_string
+    ).manage()
+
+
+def _legacy_manage_profiles():
     """List available profiles and let the user switch the active profile.
 
     This renders a directory of profiles where the currently active profile
