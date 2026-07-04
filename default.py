@@ -204,9 +204,7 @@ def _make_color_tag(color_raw, text):
     variants; if the skin ignores color tags, we also prefix label2 with an
     emoji marker as a fallback (see code below).
     """
-    if not color_raw:
-        return f"[COLOR FFA500]{text}[/COLOR]"
-    return f"[COLOR {color_raw}]{text}[/COLOR]"
+    return kodi_ui.make_color_tag(color_raw, text)
 
 
 def build_url(query):

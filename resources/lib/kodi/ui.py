@@ -10,6 +10,13 @@ def build_url(base_url, query):
     return base_url + '?' + urllib.parse.urlencode(query)
 
 
+def make_color_tag(color_raw, text):
+    """Return a Kodi COLOR tag using the raw value provided by the caller."""
+    if not color_raw:
+        return f"[COLOR FFA500]{text}[/COLOR]"
+    return f"[COLOR {color_raw}]{text}[/COLOR]"
+
+
 def add_directory_item(addon, handle, build_url_func, api_instance_getter,
                        title, query, is_folder=True, thumb=None, info=None,
                        content=None):
