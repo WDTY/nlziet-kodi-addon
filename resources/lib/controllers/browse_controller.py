@@ -94,6 +94,48 @@ class BrowseController:
         return self._handlers['browse_series_categories']()
 
     def series_genre(self, genre):
+        if (self._get_api_instance and self._add_directory_item
+                and self._pick_landscape_thumb and self._make_color_tag
+                and self._expiry_color_raw):
+            api = self._get_api_instance()
+
+            # Handle "all" as None for the API
+            genre_param = None if genre == 'all' else genre
+            results = api.get_series_by_genre(genre_param)
+
+            for item in results:
+                item_type = item.get('type', 'Series')
+                info = None
+                try:
+                    desc = item.get('description') or item.get('subtitle') or ''
+                    if desc:
+                        title_for_info = item.get('title') or ''
+                        expiry_text = item.get('expires_in') or None
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        plot_full = desc
+                        po = truncated
+                        if expiry_text:
+                            marker = 'ðŸ”¶ '
+                            colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                            plot_full = f"{colored}\n{desc}" if desc else colored
+                            po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                except Exception:
+                    info = None
+
+                # Series items should open as folders showing seasons/episodes
+                if item_type == 'Series':
+                    self._add_directory_item(item.get('title') or item.get('id') or 'Series', {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+                else:
+                    # Episodes would be playable - but shouldn't appear at top level in genre view
+                    pass
+
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_series_genre'](genre)
 
     def movie_categories(self):
