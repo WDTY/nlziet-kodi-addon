@@ -417,14 +417,12 @@ def main_menu():
 
 def browse_series_categories():
     """Display series category/genre list."""
-    api = get_api_instance()
-
-    genres = api.get_series_genres()
-    for genre in genres:
-        name = genre.get('name')
-        genre_param = genre.get('genre')
-        add_directory_item(name, {'mode': 'browse_series_genre', 'genre': genre_param or 'all'}, is_folder=True)
-    xbmcplugin.endOfDirectory(HANDLE)
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item
+    ).series_categories()
 
 
 def browse_series_genre(genre=None):
@@ -703,13 +701,12 @@ def show_series_season(series_id, season_id):
 
 def browse_tv_shows():
     """Show TV show categories/genres for browsing."""
-    api = get_api_instance()
-    
-    genres = api.get_tv_show_genres()
-    for genre in genres:
-        query = {'mode': 'browse_tv_genre', 'genre': genre.get('genre') or 'all'}
-        add_directory_item(genre.get('name'), query, is_folder=True)
-    xbmcplugin.endOfDirectory(HANDLE)
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item
+    ).tv_shows()
 
 
 def browse_tv_genre(genre=None):
@@ -800,14 +797,12 @@ def browse_tv_genre(genre=None):
 
 def browse_movie_categories():
     """Display movie category/genre list."""
-    api = get_api_instance()
-
-    genres = api.get_movie_genres()
-    for genre in genres:
-        name = genre.get('name')
-        genre_param = genre.get('genre')
-        add_directory_item(name, {'mode': 'browse_movie_genre', 'genre': genre_param or 'all'}, is_folder=True)
-    xbmcplugin.endOfDirectory(HANDLE)
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item
+    ).movie_categories()
 
 
 def browse_movie_genre(genre=None):
@@ -2535,7 +2530,12 @@ def get_route_handlers():
         'select_iptv_channels': select_iptv_channels,
     }
     auth = AuthController(legacy_handlers)
-    browse = BrowseController(legacy_handlers)
+    browse = BrowseController(
+        legacy_handlers,
+        HANDLE,
+        get_api_instance,
+        add_directory_item
+    )
     mylist = MyListController(legacy_handlers)
     playback = PlaybackController(legacy_handlers)
     profile = ProfileController(legacy_handlers)
