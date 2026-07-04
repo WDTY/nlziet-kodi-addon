@@ -516,29 +516,15 @@ def browse_series():
 
 
 def show_series_detail(series_id):
-    if not series_id:
-        xbmcgui.Dialog().notification('NLZiet', get_string('missing_series_id'), xbmcgui.NOTIFICATION_ERROR)
-        return
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance for faster detail loading
-    try:
-        api = get_api_instance()
-    except Exception:
-        api = NLZietAPI(username=username, password=password)
-    detail = api.get_series_detail(series_id)
-    if not detail:
-        xbmcgui.Dialog().notification('NLZiet', get_string('unable_fetch_series'), xbmcgui.NOTIFICATION_ERROR)
-        return
-    seasons = detail.get('seasons') or []
-    # If no seasons discovered, offer direct episode listing
-    if not seasons:
-        add_directory_item(get_string('all_episodes'), {'mode': 'series_season', 'series_id': series_id, 'season_id': ''}, is_folder=True)
-    else:
-        for s in seasons:
-            title = s.get('title') or f"{get_string('season')} {s.get('id')}"
-            add_directory_item(title, {'mode': 'series_season', 'series_id': series_id, 'season_id': s.get('id')}, is_folder=True)
-    xbmcplugin.endOfDirectory(HANDLE)
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item,
+        ADDON,
+        NLZietAPI,
+        get_string
+    ).series_detail(series_id)
 
 
 def show_series_season(series_id, season_id):

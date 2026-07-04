@@ -21,7 +21,10 @@ def build_route_handlers(legacy_handlers, dependencies):
         legacy_handlers,
         dependencies['handle'],
         dependencies['get_api_instance'],
-        dependencies['add_directory_item']
+        dependencies['add_directory_item'],
+        dependencies['addon'],
+        dependencies['api_class'],
+        dependencies['get_string']
     )
     mylist = MyListController(
         legacy_handlers,
