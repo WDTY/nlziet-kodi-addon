@@ -20,6 +20,8 @@ def test_factory_creates_expected_route_handlers_without_side_effects(fake_addon
             'api_class': ExplodingApi,
             'add_directory_item': lambda *args, **kwargs: None,
             'pick_landscape_thumb': lambda item: 'thumb',
+            'make_color_tag': lambda color, text: text,
+            'expiry_color_raw': 'FFFFFFFF',
             'get_string': lambda key, *args: key,
         }
     )
@@ -50,6 +52,8 @@ def test_factory_my_list_handler_uses_shared_dependencies(fake_addon):
             'api_class': Api,
             'add_directory_item': lambda *args, **kwargs: added.append((args, kwargs)),
             'pick_landscape_thumb': lambda item: 'picked-thumb',
+            'make_color_tag': lambda color, text: text,
+            'expiry_color_raw': 'FFFFFFFF',
             'get_string': lambda key, *args: key,
         }
     )

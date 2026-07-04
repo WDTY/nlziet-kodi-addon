@@ -7,7 +7,8 @@ class BrowseController:
 
     def __init__(self, handlers, handle=None, get_api_instance=None,
                  add_directory_item=None, addon=None, api_class=None,
-                 get_string=None):
+                 get_string=None, pick_landscape_thumb=None,
+                 make_color_tag=None, expiry_color_raw=None):
         self._handlers = handlers
         self._handle = handle
         self._get_api_instance = get_api_instance
@@ -15,6 +16,9 @@ class BrowseController:
         self._addon = addon
         self._api_class = api_class
         self._get_string = get_string
+        self._pick_landscape_thumb = pick_landscape_thumb
+        self._make_color_tag = make_color_tag
+        self._expiry_color_raw = expiry_color_raw
 
     def main_menu(self):
         return self._handlers['main_menu']()
@@ -106,6 +110,43 @@ class BrowseController:
         return self._handlers['browse_movie_categories']()
 
     def movie_genre(self, genre):
+        if (self._get_api_instance and self._add_directory_item
+                and self._pick_landscape_thumb and self._make_color_tag
+                and self._expiry_color_raw):
+            api = self._get_api_instance()
+
+            # Handle "all" as None for the API
+            genre_param = None if genre == 'all' else genre
+            results = api.get_movies_by_genre(genre_param)
+
+            for item in results:
+                info = None
+                try:
+                    desc = item.get('description') or item.get('subtitle') or ''
+                    if desc:
+                        title_for_info = item.get('title') or ''
+                        expiry_text = item.get('expires_in') or None
+                        truncated = (desc[:250] + '...') if len(desc) > 250 else desc
+                        plot_full = desc
+                        po = truncated
+                        if expiry_text:
+                            marker = 'ðŸ”¶ '
+                            colored = self._make_color_tag(self._expiry_color_raw, expiry_text)
+                            plot_full = f"{colored}\n{desc}" if desc else colored
+                            po = f"{marker}{expiry_text} â€” {truncated}" if truncated else f"{marker}{expiry_text}"
+                        info = {
+                            'title': title_for_info,
+                            'plot': plot_full,
+                            'plotoutline': po,
+                        }
+                except Exception:
+                    info = None
+
+                # Movies are playable items
+                self._add_directory_item(item.get('title'), {'mode': 'play', 'id': item.get('id')}, is_folder=False, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+
+            xbmcplugin.endOfDirectory(self._handle)
+            return None
         return self._handlers['browse_movie_genre'](genre)
 
     def category(self, content_type):

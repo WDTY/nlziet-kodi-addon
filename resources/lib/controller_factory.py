@@ -24,7 +24,10 @@ def build_route_handlers(legacy_handlers, dependencies):
         dependencies['add_directory_item'],
         dependencies['addon'],
         dependencies['api_class'],
-        dependencies['get_string']
+        dependencies['get_string'],
+        dependencies['pick_landscape_thumb'],
+        dependencies['make_color_tag'],
+        dependencies['expiry_color_raw']
     )
     mylist = MyListController(
         legacy_handlers,

@@ -2279,6 +2279,8 @@ def get_route_handlers():
         'api_class': NLZietAPI,
         'add_directory_item': add_directory_item,
         'pick_landscape_thumb': _pick_landscape_thumb,
+        'make_color_tag': _make_color_tag,
+        'expiry_color_raw': EXPIRY_COLOR_RAW,
         'get_string': get_string,
     })
 
