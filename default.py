@@ -25,6 +25,7 @@ from resources.lib.controllers import (
     ProfileController,
     SearchController,
 )
+from resources.lib.kodi import ui as kodi_ui
 from resources.lib.router import Router
 
 ADDON = xbmcaddon.Addon()
@@ -209,7 +210,7 @@ def _make_color_tag(color_raw, text):
 
 
 def build_url(query):
-    return BASE_URL + '?' + urllib.parse.urlencode(query)
+    return kodi_ui.build_url(BASE_URL, query)
 
 
 def add_directory_item(title, query, is_folder=True, thumb=None, info=None, content=None):
@@ -321,18 +322,7 @@ def _optimize_image_url(url):
     Returns:
         Optimized URL requesting higher-resolution image
     """
-    if not url or not isinstance(url, str):
-        return url
-    
-    # Remove any existing width/crop parameters
-    if '?' in url:
-        url = url.split('?')[0]
-    
-    # Request a much larger width for fanart (3840px = 4K width)
-    # This ensures crisp display even on large screens
-    url = url + '?width=3840'
-    
-    return url
+    return kodi_ui.optimize_image_url(url)
 
 
 def _pick_landscape_thumb(src):
