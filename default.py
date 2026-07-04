@@ -339,28 +339,11 @@ def main_menu():
 
     # prefer png then svg then fallback to addon's icon.png
     def _pick_icon(name):
-        candidates = [
-            os.path.join(addon_path, 'resources', 'media', f'menu_{name}.png'),
-            os.path.join(addon_path, 'resources', 'media', f'menu_{name}.svg'),
-            os.path.join(addon_path, 'icon.png'),
-        ]
-        for c in candidates:
-            try:
-                if c and os.path.exists(c):
-                    return c
-            except Exception:
-                continue
-        return None
+        return kodi_ui.pick_menu_icon(addon_path, name)
 
     # Explicit PNG-first picker (prefer exact menu_{name}.png when available)
     def _pick_png(name):
-        try:
-            png = os.path.join(addon_path, 'resources', 'media', f'menu_{name}.png')
-            if png and os.path.exists(png):
-                return png
-        except Exception:
-            pass
-        return _pick_icon(name)
+        return kodi_ui.pick_menu_png(addon_path, name)
 
     # Start background refresh of account info (silent) on addon launch
     try:

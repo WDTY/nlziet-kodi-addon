@@ -17,6 +17,31 @@ def make_color_tag(color_raw, text):
     return f"[COLOR {color_raw}]{text}[/COLOR]"
 
 
+def pick_menu_icon(addon_path, name):
+    candidates = [
+        os.path.join(addon_path, 'resources', 'media', f'menu_{name}.png'),
+        os.path.join(addon_path, 'resources', 'media', f'menu_{name}.svg'),
+        os.path.join(addon_path, 'icon.png'),
+    ]
+    for c in candidates:
+        try:
+            if c and os.path.exists(c):
+                return c
+        except Exception:
+            continue
+    return None
+
+
+def pick_menu_png(addon_path, name):
+    try:
+        png = os.path.join(addon_path, 'resources', 'media', f'menu_{name}.png')
+        if png and os.path.exists(png):
+            return png
+    except Exception:
+        pass
+    return pick_menu_icon(addon_path, name)
+
+
 def add_directory_item(addon, handle, build_url_func, api_instance_getter,
                        title, query, is_folder=True, thumb=None, info=None,
                        content=None):
