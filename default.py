@@ -2076,7 +2076,7 @@ def filter_manifest_subtitles(manifest_url):
     Placeholder for future manifest filtering.
     Currently unused - we use player subtitle API instead.
     """
-    return manifest_url
+    return PlaybackController({}).filter_manifest_subtitles(manifest_url)
 
 
 class NLZietPlaybackMonitor(xbmc.Player):
