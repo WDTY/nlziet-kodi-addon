@@ -1204,8 +1204,8 @@ def select_iptv_channels():
     return IPTVController(get_api_instance).select_channels()
 
 
-def get_route_handlers():
-    legacy_handlers = {
+def get_compatibility_handlers():
+    return {
         'main_menu': main_menu,
         'do_login': do_login,
         'do_search': do_search,
@@ -1233,7 +1233,10 @@ def get_route_handlers():
         'play_item': play_item,
         'select_iptv_channels': select_iptv_channels,
     }
-    return build_route_handlers(legacy_handlers, {
+
+
+def get_route_dependencies():
+    return {
         'addon': ADDON,
         'handle': HANDLE,
         'get_api_instance': get_api_instance,
@@ -1245,7 +1248,14 @@ def get_route_handlers():
         'expiry_color_raw': EXPIRY_COLOR_RAW,
         'get_channels_menu_data': get_channels_menu_data,
         'get_string': get_string,
-    })
+    }
+
+
+def get_route_handlers():
+    return build_route_handlers(
+        get_compatibility_handlers(),
+        get_route_dependencies()
+    )
 
 
 def router(paramstring):
