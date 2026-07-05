@@ -6,7 +6,6 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
-import time
 import threading
 from datetime import datetime, timedelta
 
@@ -16,7 +15,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 
 from resources.lib.nlziet_api import NLZietAPI
-from resources.lib import account_summary
+from resources.lib import account_summary, session_cache
 from resources.lib.app_context import AddonContext
 from resources.lib.controller_factory import build_route_handlers
 from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
@@ -28,77 +27,19 @@ ADDON = xbmcaddon.Addon()
 HANDLE = int(sys.argv[1])
 BASE_URL = sys.argv[0]
 
-# Global API instance cache to avoid repeated initialization
-_api_cache = None
-_api_cache_time = 0
-_api_cache_timeout = 300  # 5 minutes - refresh cache after this
-
-# Short-lived channels listing cache to make return-from-playback instant.
-_channel_menu_cache_data = []
-_channel_menu_cache_epg = {}
-_channel_menu_cache_time = 0
-_channel_menu_cache_ttl = 45  # seconds
-
 def get_api_instance():
-    """Get or create a cached API instance to avoid repeated disk I/O and initialization."""
-    global _api_cache, _api_cache_time
-    current_time = time.time()
-    
-    # If cache exists and is fresh (within timeout), return it
-    if _api_cache is not None and (current_time - _api_cache_time) < _api_cache_timeout:
-        return _api_cache
-    
-    # Create new instance (loads cookies, tokens from disk)
-    username = ADDON.getSetting('username') or ''
-    password = ADDON.getSetting('password') or ''
-    _api_cache = NLZietAPI(username=username, password=password)
-    _api_cache_time = current_time
-    return _api_cache
+    return session_cache.get_api_instance(ADDON, NLZietAPI)
 
 def clear_api_cache():
-    """Clear the API instance cache (call after logout)."""
-    global _api_cache, _api_cache_time
-    global _channel_menu_cache_data, _channel_menu_cache_epg, _channel_menu_cache_time
-    _api_cache = None
-    _api_cache_time = 0
-    _channel_menu_cache_data = []
-    _channel_menu_cache_epg = {}
-    _channel_menu_cache_time = 0
+    return session_cache.clear_api_cache()
 
 
 def set_api_instance(api_instance):
-    """Replace the API cache with a known-good instance (e.g. after login)."""
-    global _api_cache, _api_cache_time
-    _api_cache = api_instance
-    _api_cache_time = time.time()
+    return session_cache.set_api_instance(api_instance)
 
 
 def get_channels_menu_data(api_instance):
-    """Return channels + EPG data with short-lived in-memory caching.
-
-    This avoids re-fetching channels/EPG immediately after stopping Live TV,
-    which makes menu return feel instant.
-    """
-    global _channel_menu_cache_data, _channel_menu_cache_epg, _channel_menu_cache_time
-    now = time.time()
-    if _channel_menu_cache_time and (now - _channel_menu_cache_time) < _channel_menu_cache_ttl:
-        return _channel_menu_cache_data or [], _channel_menu_cache_epg or {}
-
-    results = api_instance.get_channels() or []
-    epg_map = {}
-    channel_ids = [r.get('id') for r in results if r.get('id')]
-    if channel_ids:
-        try:
-            # Fetch EPG for all specified channels
-            epg_map = api_instance.get_current_programs(channel_ids) or {}
-        except Exception as e:
-            xbmc.log(f"get_channels_menu_data: EPG fetch failed: {e}", xbmc.LOGWARNING)
-            epg_map = {}
-
-    _channel_menu_cache_data = results
-    _channel_menu_cache_epg = epg_map
-    _channel_menu_cache_time = now
-    return results, epg_map
+    return session_cache.get_channels_menu_data(api_instance)
 
 # Raw expiry color to test — change this to 'orange' or a hex like 'FFA500' or
 # try the exact raw tag you suggested ('ffoooo66') to experiment.
