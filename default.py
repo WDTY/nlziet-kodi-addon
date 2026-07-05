@@ -822,6 +822,22 @@ def browse_movie_genre(genre=None):
 
 
 def browse_placement_row(items_url=None, placement_id=None, comp_index=None):
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item,
+        ADDON,
+        NLZietAPI,
+        get_string,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW,
+        get_channels_menu_data
+    ).placement_row(items_url, placement_id, comp_index)
+
+
+def _legacy_browse_placement_row(items_url=None, placement_id=None, comp_index=None):
     """List items for a placement row. Accepts either `items_url` or a
     `placement_id` + `comp_index` to locate inline items.
     """
