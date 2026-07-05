@@ -317,44 +317,19 @@ def browse_series_categories():
 
 def browse_series_genre(genre=None):
     """Display series in a selected genre."""
-    api = get_api_instance()
-
-    # Handle "all" as None for the API
-    genre_param = None if genre == 'all' else genre
-    results = api.get_series_by_genre(genre_param)
-    
-    for item in results:
-        item_type = item.get('type', 'Series')
-        info = None
-        try:
-            desc = item.get('description') or item.get('subtitle') or ''
-            if desc:
-                title_for_info = item.get('title') or ''
-                expiry_text = item.get('expires_in') or None
-                truncated = (desc[:250] + '...') if len(desc) > 250 else desc
-                plot_full = desc
-                po = truncated
-                if expiry_text:
-                    marker = '🔶 '
-                    colored = _make_color_tag(EXPIRY_COLOR_RAW, expiry_text)
-                    plot_full = f"{colored}\n{desc}" if desc else colored
-                    po = f"{marker}{expiry_text} — {truncated}" if truncated else f"{marker}{expiry_text}"
-                info = {
-                    'title': title_for_info,
-                    'plot': plot_full,
-                    'plotoutline': po,
-                }
-        except Exception:
-            info = None
-        
-        # Series items should open as folders showing seasons/episodes
-        if item_type == 'Series':
-            add_directory_item(item.get('title') or item.get('id') or get_string('series'), {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=_pick_landscape_thumb(item), info=info, content=item)
-        else:
-            # Episodes would be playable - but shouldn't appear at top level in genre view
-            pass
-    
-    xbmcplugin.endOfDirectory(HANDLE)
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item,
+        ADDON,
+        NLZietAPI,
+        get_string,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW,
+        get_channels_menu_data
+    ).series_genre(genre)
 
 
 def browse_series():
