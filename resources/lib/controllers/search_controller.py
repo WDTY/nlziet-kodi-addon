@@ -9,7 +9,8 @@ class SearchController:
     def __init__(self, handlers, addon=None, handle=None,
                  get_api_instance=None, api_class=None,
                  add_directory_item=None, pick_landscape_thumb=None,
-                 make_color_tag=None, expiry_color_raw=None):
+                 make_color_tag=None, expiry_color_raw=None,
+                 get_string=None):
         self._handlers = handlers
         self._addon = addon
         self._handle = handle
@@ -19,12 +20,23 @@ class SearchController:
         self._pick_landscape_thumb = pick_landscape_thumb
         self._make_color_tag = make_color_tag
         self._expiry_color_raw = expiry_color_raw
+        self._get_string = get_string or (lambda key, *args: key.format(*args) if args else key)
+
+    def _group_label(self, group):
+        labels = {
+            'Series': self._get_string('series'),
+            'Episodes': self._get_string('episodes'),
+            'Movies': self._get_string('movies'),
+            'Channels': self._get_string('channels'),
+            'Other': self._get_string('other'),
+        }
+        return labels.get(group, group)
 
     def search(self):
         if (self._addon and self._get_api_instance and self._api_class
                 and self._add_directory_item and self._pick_landscape_thumb
                 and self._make_color_tag and self._expiry_color_raw):
-            kb = xbmc.Keyboard('', 'Search NLZiet')
+            kb = xbmc.Keyboard('', self._get_string('search_title'))
             kb.doModal()
             if not kb.isConfirmed():
                 return
@@ -77,7 +89,7 @@ class SearchController:
                 if fb:
                     results = fb
                 else:
-                    xbmcgui.Dialog().notification('NLZiet', f'No results for "{query}"', xbmcgui.NOTIFICATION_INFO)
+                    xbmcgui.Dialog().notification('NLZiet', self._get_string('no_results', query), xbmcgui.NOTIFICATION_INFO)
                     xbmcplugin.endOfDirectory(self._handle)
                     return
             # Group search results by their detected type so we can present grouped
@@ -132,7 +144,7 @@ class SearchController:
                         thumb = self._pick_landscape_thumb(first) if first else None
                     except Exception:
                         thumb = None
-                    label = f"{g}: {len(items_for_group)} found"
+                    label = f"{self._group_label(g)}: {self._get_string('found_count', len(items_for_group))}"
                     self._add_directory_item(label, {'mode': 'search_group', 'q': query, 'group': g}, is_folder=True, thumb=thumb)
                 xbmcplugin.endOfDirectory(self._handle)
                 return
@@ -199,7 +211,7 @@ class SearchController:
                     except Exception:
                         itype_l = itype_l
 
-                title = item.get('title') or item.get('name') or content_id or 'Result'
+                title = item.get('title') or item.get('name') or content_id or self._get_string('result')
                 thumb = self._pick_landscape_thumb(item)
 
                 # Determine a simple group label so search results indicate their type
@@ -217,7 +229,7 @@ class SearchController:
                     if sid:
                         group = 'Series'
 
-                display_title = f"{group}: {title}" if group else title
+                display_title = f"{self._group_label(group)}: {title}" if group else title
 
                 # Series / TV show -> open series detail (folder)
                 if 'series' in itype_l or 'tvshow' in itype_l:
@@ -248,7 +260,7 @@ class SearchController:
                 and self._make_color_tag and self._expiry_color_raw):
             q = query
             if not q:
-                xbmcgui.Dialog().notification('NLZiet', 'Missing search query', xbmcgui.NOTIFICATION_INFO)
+                xbmcgui.Dialog().notification('NLZiet', self._get_string('missing_search_query'), xbmcgui.NOTIFICATION_INFO)
                 return
 
             username = self._addon.getSetting('username')
@@ -298,7 +310,7 @@ class SearchController:
                 if fb:
                     results = fb
                 else:
-                    xbmcgui.Dialog().notification('NLZiet', f'No results for "{q}"', xbmcgui.NOTIFICATION_INFO)
+                    xbmcgui.Dialog().notification('NLZiet', self._get_string('no_results', q), xbmcgui.NOTIFICATION_INFO)
                     xbmcplugin.endOfDirectory(self._handle)
                     return
 
@@ -372,7 +384,7 @@ class SearchController:
                 if not group_name or str(group_name).lower() != (str(group or '').lower()):
                     continue
 
-                title = item.get('title') or item.get('name') or content_id or 'Result'
+                title = item.get('title') or item.get('name') or content_id or self._get_string('result')
                 thumb = self._pick_landscape_thumb(item)
 
                 # Inside a search-group listing we show plain titles; the group

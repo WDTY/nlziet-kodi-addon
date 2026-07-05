@@ -1097,7 +1097,8 @@ def do_search():
         add_directory_item,
         _pick_landscape_thumb,
         _make_color_tag,
-        EXPIRY_COLOR_RAW
+        EXPIRY_COLOR_RAW,
+        get_string
     ).search()
 
 
@@ -1127,7 +1128,8 @@ def search_group(q, group):
         add_directory_item,
         _pick_landscape_thumb,
         _make_color_tag,
-        EXPIRY_COLOR_RAW
+        EXPIRY_COLOR_RAW,
+        get_string
     ).group(q, group)
 
 

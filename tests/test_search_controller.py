@@ -1,4 +1,5 @@
 from resources.lib.controllers.search_controller import SearchController
+from resources.lib.i18n import get_string
 import xbmc
 
 
@@ -59,6 +60,7 @@ def _controller(fake_addon, api, added):
         lambda item: 'thumb:' + item['id'],
         lambda color, text: f"[{color}]{text}",
         'FFFFFFFF',
+        get_string,
     )
 
 
@@ -104,7 +106,7 @@ def test_search_group_uses_fallback_results_without_network(fake_addon):
 def test_search_group_missing_query_notifies(fake_addon, kodi_recorder):
     _controller(fake_addon, FakeSearchApi(), []).group('', 'Movies')
 
-    assert kodi_recorder.notifications == [('NLZiet', 'Missing search query', 'info')]
+    assert kodi_recorder.notifications == [('NLZiet', 'Zoekopdracht ontbreekt', 'info')]
 
 
 def test_search_cancel_does_not_call_api(fake_addon, monkeypatch):
@@ -128,7 +130,7 @@ def test_search_groups_multiple_result_types(fake_addon, kodi_recorder, monkeypa
 
     _controller(fake_addon, api, added).search()
 
-    assert [call[0][0] for call in added] == ['Series: 1 found', 'Movies: 1 found']
+    assert [call[0][0] for call in added] == ['Series: 1 gevonden', 'Films: 1 gevonden']
     assert added[0][0][1] == {'mode': 'search_group', 'q': 'mix', 'group': 'Series'}
     assert added[1][0][1] == {'mode': 'search_group', 'q': 'mix', 'group': 'Movies'}
     assert all(call[1]['is_folder'] is True for call in added)
@@ -144,7 +146,7 @@ def test_search_single_group_adds_direct_results(fake_addon, kodi_recorder, monk
 
     _controller(fake_addon, api, added).search()
 
-    assert added[0][0][0] == 'Movies: Movie Result'
+    assert added[0][0][0] == 'Films: Movie Result'
     assert added[0][0][1] == {'mode': 'play', 'id': 'm1'}
     assert added[0][1]['is_folder'] is False
     assert kodi_recorder.ended == [70]
@@ -161,9 +163,9 @@ def test_search_uses_fallback_results(fake_addon, monkeypatch):
     assert api.movie_calls == 1
     assert api.channel_calls == 1
     assert [call[0][0] for call in added] == [
-        'Series: 1 found',
-        'Movies: 1 found',
-        'Channels: 1 found',
+        'Series: 1 gevonden',
+        'Films: 1 gevonden',
+        'Kanalen: 1 gevonden',
     ]
 
 
@@ -178,5 +180,5 @@ def test_search_no_results_notifies(fake_addon, kodi_recorder, monkeypatch):
     _controller(fake_addon, api, added).search()
 
     assert added == []
-    assert kodi_recorder.notifications == [('NLZiet', 'No results for "nothing"', 'info')]
+    assert kodi_recorder.notifications == [('NLZiet', 'Geen resultaten gevonden voor "nothing"', 'info')]
     assert kodi_recorder.ended == [70]
