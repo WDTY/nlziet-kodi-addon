@@ -104,7 +104,7 @@ class BrowseController:
                         }
                 except Exception:
                     info = None
-                self._add_directory_item(item.get('title') or item.get('id') or 'Series', {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+                self._add_directory_item(item.get('title') or item.get('id') or self._get_string('series'), {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
             xbmcplugin.endOfDirectory(self._handle)
             return None
         return self._handlers['browse_series']()
@@ -268,9 +268,10 @@ class BrowseController:
                         if s is not None:
                             label = f"S{s:02d}E{n:02d} - {label}" if label else f"S{s:02d}E{n:02d}"
                         else:
-                            label = f"Episode {n} - {label}" if label else f"Episode {n}"
+                            episode_label = self._get_string('episode')
+                            label = f"{episode_label} {n} - {label}" if label else f"{episode_label} {n}"
                     else:
-                        label = label or ep.get('id') or 'Episode'
+                        label = label or ep.get('id') or self._get_string('episode')
 
                 self._add_directory_item(label, {'mode': 'play', 'id': ep.get('id')}, is_folder=False, thumb=self._pick_landscape_thumb(ep), info=info, content=ep)
             xbmcplugin.endOfDirectory(self._handle)
@@ -504,7 +505,7 @@ class BrowseController:
 
                 # Series items should open as folders showing seasons/episodes
                 if item_type == 'Series':
-                    self._add_directory_item(item.get('title') or item.get('id') or 'Series', {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
+                    self._add_directory_item(item.get('title') or item.get('id') or self._get_string('series'), {'mode': 'series_detail', 'series_id': item.get('id')}, is_folder=True, thumb=self._pick_landscape_thumb(item), info=info, content=item)
                 else:
                     # Episodes would be playable - but shouldn't appear at top level in genre view
                     pass
