@@ -1117,54 +1117,6 @@ def select_profile(profile_id):
     ).select(profile_id)
 
 
-def _legacy_select_profile(profile_id):
-    """Activate the given profile id and re-render the profiles list."""
-    if not profile_id:
-        xbmcgui.Dialog().notification('NLZiet', 'Missing profile id', xbmcgui.NOTIFICATION_ERROR)
-        return
-
-    username = ADDON.getSetting('username')
-    password = ADDON.getSetting('password')
-    # Use cached API instance for faster profile switching
-    try:
-        api = get_api_instance()
-    except Exception:
-        api = NLZietAPI(username=username, password=password)
-    try:
-        result = api.select_profile(profile_id)
-    except Exception as e:
-        xbmc.log(f"NLZiet select_profile error: {e}", xbmc.LOGERROR)
-        result = None
-
-    if result:
-        # persist selection
-        try:
-            ADDON.setSetting('profile_id', str(profile_id))
-            # attempt to look up a friendly name
-            profiles = api.get_profiles() or []
-            profile_name = ''
-            for p in profiles:
-                if str(p.get('id')) == str(profile_id) or str(p.get('profileId')) == str(profile_id):
-                    profile_name = p.get('displayName') or p.get('name') or p.get('profileName') or ''
-                    break
-            ADDON.setSetting('profile_name', profile_name or str(profile_id))
-        except Exception:
-            pass
-        xbmcgui.Dialog().notification('NLZiet', f'Profile switched to {ADDON.getSetting("profile_name") or profile_id}', xbmcgui.NOTIFICATION_INFO)
-    else:
-        xbmcgui.Dialog().notification('NLZiet', 'Profile switch failed', xbmcgui.NOTIFICATION_ERROR)
-
-    # Replace the current container with the profiles listing so we don't
-    # push an extra history entry. This prevents Back from cycling
-    # through profile selections and instead returns to the main menu.
-    try:
-        profiles_url = build_url({'mode': 'profiles'})
-        xbmc.executebuiltin('Container.Update(%s,replace)' % profiles_url)
-    except Exception:
-        # Fallback: if the builtin fails, render profiles directly.
-        manage_profiles()
-
-
 def apply_profile():
     """Apply the `profile_id` stored in settings: perform profile-grant and
     update the stored `profile_name` setting for display in Settings UI.
