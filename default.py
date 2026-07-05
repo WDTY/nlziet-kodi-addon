@@ -19,7 +19,7 @@ from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import account_summary
 from resources.lib.app_context import AddonContext
 from resources.lib.controller_factory import build_route_handlers
-from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController
+from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
 from resources.lib.kodi import ui as kodi_ui
 from resources.lib.router import Router
 
