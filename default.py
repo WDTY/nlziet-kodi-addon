@@ -445,6 +445,22 @@ def browse_series_genre(genre=None):
 
 
 def browse_series():
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item,
+        ADDON,
+        NLZietAPI,
+        get_string,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW,
+        get_channels_menu_data
+    ).series()
+
+
+def _legacy_browse_series():
     username = ADDON.getSetting('username')
     password = ADDON.getSetting('password')
     # Use cached API instance for faster menu navigation
