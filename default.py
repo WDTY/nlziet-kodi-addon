@@ -1682,6 +1682,22 @@ def _legacy_do_search():
 
 
 def browse_category(content_type):
+    return BrowseController(
+        {},
+        HANDLE,
+        get_api_instance,
+        add_directory_item,
+        ADDON,
+        NLZietAPI,
+        get_string,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW,
+        get_channels_menu_data
+    ).category(content_type)
+
+
+def _legacy_browse_category(content_type):
     username = ADDON.getSetting('username')
     password = ADDON.getSetting('password')
     # Use cached API instance for faster menu navigation
