@@ -18,6 +18,7 @@ from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import session_cache
 from resources.lib.app_context import AddonContext
 from resources.lib.compat import default_helpers, default_routes
+from resources.lib.compat import main_menu as main_menu_compat
 from resources.lib.controller_factory import build_route_dependencies, build_route_handlers
 from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
 from resources.lib.i18n import get_string
@@ -181,87 +182,35 @@ def _check_and_handle_token_expiry():
 
 
 def build_main_menu_entries(logged_in, addon_path, pick_png, get_label=get_string):
-    entries = []
-
-    if logged_in:
-        explicit_logout_icon = os.path.join(addon_path, 'resources', 'media', 'menu_logout.png')
-        logout_icon = explicit_logout_icon if explicit_logout_icon and os.path.exists(explicit_logout_icon) else pick_png('logout')
-        entries.append({
-            'title': get_label('sign_out'),
-            'query': {'mode': 'logout_confirm'},
-            'thumb': logout_icon,
-        })
-    else:
-        entries.append({
-            'title': get_label('login'),
-            'query': {'mode': 'login'},
-            'thumb': pick_png('login'),
-        })
-
-    if logged_in:
-        entries.extend([
-            {'title': get_label('manage_profiles'), 'query': {'mode': 'profiles'}, 'thumb': pick_png('profiles')},
-            {'title': get_label('search'), 'query': {'mode': 'search'}, 'thumb': pick_png('search')},
-            {'title': get_label('my_list'), 'query': {'mode': 'my_list'}, 'thumb': pick_png('mylist')},
-            {'title': get_label('series'), 'query': {'mode': 'browse_series_categories'}, 'thumb': pick_png('series')},
-            {'title': get_label('tv_shows'), 'query': {'mode': 'browse_tv_shows'}, 'thumb': pick_png('tvshows')},
-            {'title': get_label('documentary'), 'query': {'mode': 'browse', 'type': 'documentary'}, 'thumb': pick_png('documentary')},
-            {'title': get_label('movies'), 'query': {'mode': 'browse_movie_categories'}, 'thumb': pick_png('movies')},
-            {'title': get_label('channels'), 'query': {'mode': 'browse', 'type': 'channels'}, 'thumb': pick_png('tv')},
-        ])
-
-    return entries
+    return main_menu_compat.build_main_menu_entries(
+        logged_in,
+        addon_path,
+        pick_png,
+        get_label,
+    )
 
 
 def main_menu():
-    # Check for expired tokens and attempt refresh
-    _check_and_handle_token_expiry()
-    
-    try:
-        addon_path = xbmc.translatePath(ADDON.getAddonInfo('path')) or ''
-    except Exception:
-        try:
-            addon_path = ADDON.getAddonInfo('path') or ''
-        except Exception:
-            addon_path = ''
-
-    # prefer png then svg then fallback to addon's icon.png
-    def _pick_icon(name):
-        return kodi_ui.pick_menu_icon(addon_path, name)
-
-    # Explicit PNG-first picker (prefer exact menu_{name}.png when available)
-    def _pick_png(name):
-        return kodi_ui.pick_menu_png(addon_path, name)
-
-    # Start background refresh of account info (silent) on addon launch
-    try:
-        threading.Thread(target=refresh_account_info, args=(False,), daemon=True).start()
-    except Exception:
-        xbmc.log('NLZiet: failed to start account refresh thread', xbmc.LOGDEBUG)
-
-    # Determine authentication state and show protected items only when logged in
-    logged_in = _is_logged_in()
-
-    # If not logged in, notify the user to press Login on the main menu
-    if not logged_in:
-        try:
-            msg = get_string('login_notification')
-            xbmcgui.Dialog().notification('NLZiet', msg, xbmcgui.NOTIFICATION_INFO)
-        except Exception:
-            xbmc.log('NLZiet: failed to show login notification', xbmc.LOGDEBUG)
-
-    for entry in build_main_menu_entries(logged_in, addon_path, _pick_png):
-        add_directory_item(entry['title'], entry['query'], thumb=entry.get('thumb'))
-    
-    # Set background image for the container
-    try:
-        background_path = os.path.join(addon_path, 'resources', 'media', 'background.jpg')
-        if os.path.exists(background_path):
-            xbmcplugin.setProperty(HANDLE, 'fanart', background_path)
-    except Exception:
-        xbmc.log('NLZiet: failed to set background image', xbmc.LOGDEBUG)
-    
-    xbmcplugin.endOfDirectory(HANDLE)
+    return main_menu_compat.render_main_menu(
+        ADDON,
+        HANDLE,
+        _check_and_handle_token_expiry,
+        lambda path: xbmc.translatePath(path),
+        kodi_ui.pick_menu_png,
+        refresh_account_info,
+        _is_logged_in,
+        get_string,
+        lambda heading, message: xbmcgui.Dialog().notification(
+            heading,
+            message,
+            xbmcgui.NOTIFICATION_INFO,
+        ),
+        add_directory_item,
+        xbmcplugin.setProperty,
+        xbmcplugin.endOfDirectory,
+        lambda message: xbmc.log(message, xbmc.LOGDEBUG),
+        threading.Thread,
+    )
 
 
 def browse_series_categories():

@@ -175,3 +175,20 @@ def test_main_menu_logged_in_shows_protected_entries_in_order(monkeypatch, kodi_
     assert value.replace('\\', '/') == 'C:/addon/resources/media/background.jpg'
     assert kodi_recorder.ended == [default.HANDLE]
     assert len(threads) == 1
+
+
+def test_main_menu_falls_back_when_xbmc_translate_path_is_missing(monkeypatch, kodi_recorder):
+    default = _import_default(monkeypatch)
+    monkeypatch.delattr(default.xbmc, 'translatePath', raising=False)
+    items, properties, threads = _patch_main_menu_edges(monkeypatch, default, logged_in=False)
+
+    default.main_menu()
+
+    assert _queries(items) == [{'mode': 'login'}]
+    assert items[0]['thumb'].replace('\\', '/').endswith('/resources/media/menu_login.png')
+    assert len(properties) == 1
+    handle, key, value = properties[0]
+    assert (handle, key) == (default.HANDLE, 'fanart')
+    assert value.replace('\\', '/') == 'C:/addon/resources/media/background.jpg'
+    assert kodi_recorder.ended == [default.HANDLE]
+    assert len(threads) == 1
