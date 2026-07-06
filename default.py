@@ -180,6 +180,39 @@ def _check_and_handle_token_expiry():
     return False
 
 
+def build_main_menu_entries(logged_in, addon_path, pick_png, get_label=get_string):
+    entries = []
+
+    if logged_in:
+        explicit_logout_icon = os.path.join(addon_path, 'resources', 'media', 'menu_logout.png')
+        logout_icon = explicit_logout_icon if explicit_logout_icon and os.path.exists(explicit_logout_icon) else pick_png('logout')
+        entries.append({
+            'title': get_label('sign_out'),
+            'query': {'mode': 'logout_confirm'},
+            'thumb': logout_icon,
+        })
+    else:
+        entries.append({
+            'title': get_label('login'),
+            'query': {'mode': 'login'},
+            'thumb': pick_png('login'),
+        })
+
+    if logged_in:
+        entries.extend([
+            {'title': get_label('manage_profiles'), 'query': {'mode': 'profiles'}, 'thumb': pick_png('profiles')},
+            {'title': get_label('search'), 'query': {'mode': 'search'}, 'thumb': pick_png('search')},
+            {'title': get_label('my_list'), 'query': {'mode': 'my_list'}, 'thumb': pick_png('mylist')},
+            {'title': get_label('series'), 'query': {'mode': 'browse_series_categories'}, 'thumb': pick_png('series')},
+            {'title': get_label('tv_shows'), 'query': {'mode': 'browse_tv_shows'}, 'thumb': pick_png('tvshows')},
+            {'title': get_label('documentary'), 'query': {'mode': 'browse', 'type': 'documentary'}, 'thumb': pick_png('documentary')},
+            {'title': get_label('movies'), 'query': {'mode': 'browse_movie_categories'}, 'thumb': pick_png('movies')},
+            {'title': get_label('channels'), 'query': {'mode': 'browse', 'type': 'channels'}, 'thumb': pick_png('tv')},
+        ])
+
+    return entries
+
+
 def main_menu():
     # Check for expired tokens and attempt refresh
     _check_and_handle_token_expiry()
@@ -217,24 +250,8 @@ def main_menu():
         except Exception:
             xbmc.log('NLZiet: failed to show login notification', xbmc.LOGDEBUG)
 
-    # Show Login or Sign Out button based on auth status
-    if logged_in:
-        explicit_logout_icon = os.path.join(addon_path, 'resources', 'media', 'menu_logout.png')
-        logout_icon = explicit_logout_icon if explicit_logout_icon and os.path.exists(explicit_logout_icon) else _pick_png('logout')
-        add_directory_item(get_string('sign_out'), {'mode': 'logout_confirm'}, thumb=logout_icon)
-    else:
-        add_directory_item(get_string('login'), {'mode': 'login'}, thumb=_pick_png('login'))
-    
-    if logged_in:
-        add_directory_item(get_string('manage_profiles'), {'mode': 'profiles'}, thumb=_pick_png('profiles'))
-        add_directory_item(get_string('search'), {'mode': 'search'}, thumb=_pick_png('search'))
-        add_directory_item(get_string('my_list'), {'mode': 'my_list'}, thumb=_pick_png('mylist'))
-        add_directory_item(get_string('series'), {'mode': 'browse_series_categories'}, thumb=_pick_png('series'))
-        add_directory_item(get_string('tv_shows'), {'mode': 'browse_tv_shows'}, thumb=_pick_png('tvshows'))
-        add_directory_item(get_string('documentary'), {'mode': 'browse', 'type': 'documentary'}, thumb=_pick_png('documentary'))
-        add_directory_item(get_string('movies'), {'mode': 'browse_movie_categories'}, thumb=_pick_png('movies'))
-        # Some icon sets use 'tv' instead of 'channels' (we check menu_tv.png)
-        add_directory_item(get_string('channels'), {'mode': 'browse', 'type': 'channels'}, thumb=_pick_png('tv'))
+    for entry in build_main_menu_entries(logged_in, addon_path, _pick_png):
+        add_directory_item(entry['title'], entry['query'], thumb=entry.get('thumb'))
     
     # Set background image for the container
     try:

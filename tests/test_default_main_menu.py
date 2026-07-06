@@ -57,6 +57,63 @@ def _queries(items):
     return [item['query'] for item in items]
 
 
+def test_build_main_menu_entries_logged_out_returns_login_entry(monkeypatch):
+    default = _import_default(monkeypatch)
+
+    entries = default.build_main_menu_entries(
+        False,
+        'C:/addon',
+        lambda name: f'icon:{name}',
+        get_label=lambda key: f'label:{key}',
+    )
+
+    assert entries == [
+        {
+            'title': 'label:login',
+            'query': {'mode': 'login'},
+            'thumb': 'icon:login',
+        },
+    ]
+
+
+def test_build_main_menu_entries_logged_in_returns_protected_entries(monkeypatch):
+    default = _import_default(monkeypatch)
+    monkeypatch.setattr(default.os.path, 'exists', lambda path: path.replace('\\', '/').endswith('/resources/media/menu_logout.png'))
+
+    entries = default.build_main_menu_entries(
+        True,
+        'C:/addon',
+        lambda name: f'icon:{name}',
+        get_label=lambda key: f'label:{key}',
+    )
+
+    assert [entry['query'] for entry in entries] == [
+        {'mode': 'logout_confirm'},
+        {'mode': 'profiles'},
+        {'mode': 'search'},
+        {'mode': 'my_list'},
+        {'mode': 'browse_series_categories'},
+        {'mode': 'browse_tv_shows'},
+        {'mode': 'browse', 'type': 'documentary'},
+        {'mode': 'browse_movie_categories'},
+        {'mode': 'browse', 'type': 'channels'},
+    ]
+    assert [entry['title'] for entry in entries] == [
+        'label:sign_out',
+        'label:manage_profiles',
+        'label:search',
+        'label:my_list',
+        'label:series',
+        'label:tv_shows',
+        'label:documentary',
+        'label:movies',
+        'label:channels',
+    ]
+    assert entries[0]['thumb'].replace('\\', '/') == 'C:/addon/resources/media/menu_logout.png'
+    assert entries[1]['thumb'] == 'icon:profiles'
+    assert entries[-1]['thumb'] == 'icon:tv'
+
+
 def test_main_menu_logged_out_shows_login_only_and_completes(monkeypatch, kodi_recorder):
     default = _import_default(monkeypatch)
     items, properties, threads = _patch_main_menu_edges(monkeypatch, default, logged_in=False)
