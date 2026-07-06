@@ -15,8 +15,9 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 
 from resources.lib.nlziet_api import NLZietAPI
-from resources.lib import account_summary, session_cache
+from resources.lib import session_cache
 from resources.lib.app_context import AddonContext
+from resources.lib.compat import default_helpers
 from resources.lib.controller_factory import build_route_handlers
 from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
 from resources.lib.i18n import get_string
@@ -43,7 +44,7 @@ def get_channels_menu_data(api_instance):
 
 # Raw expiry color to test — change this to 'orange' or a hex like 'FFA500' or
 # try the exact raw tag you suggested ('ffoooo66') to experiment.
-EXPIRY_COLOR_RAW = 'ffoooo66'
+EXPIRY_COLOR_RAW = default_helpers.EXPIRY_COLOR_RAW
 
 
 def _make_color_tag(color_raw, text):
@@ -53,11 +54,11 @@ def _make_color_tag(color_raw, text):
     variants; if the skin ignores color tags, we also prefix label2 with an
     emoji marker as a fallback (see code below).
     """
-    return kodi_ui.make_color_tag(color_raw, text)
+    return default_helpers.make_color_tag(color_raw, text)
 
 
 def build_url(query):
-    return kodi_ui.build_url(BASE_URL, query)
+    return default_helpers.build_url(BASE_URL, query)
 
 
 def add_directory_item(title, query, is_folder=True, thumb=None, info=None, content=None):
@@ -87,7 +88,7 @@ def _optimize_image_url(url):
     Returns:
         Optimized URL requesting higher-resolution image
     """
-    return kodi_ui.optimize_image_url(url)
+    return default_helpers.optimize_image_url(url)
 
 
 def _pick_landscape_thumb(src):
@@ -97,7 +98,7 @@ def _pick_landscape_thumb(src):
     explicit landscape keys, then common wide/hero/poster keys, and finally
     falls back to any url-like string found on the object.
     """
-    return kodi_ui.pick_landscape_thumb(src)
+    return default_helpers.pick_landscape_thumb(src)
 
 
 def _pick_portrait_thumb(src):
@@ -106,7 +107,7 @@ def _pick_portrait_thumb(src):
     Portrait images are typically 2:3 aspect ratio (posters/covers).
     Prefers explicit portrait keys, then falls back to landscape or generic thumbnails.
     """
-    return kodi_ui.pick_portrait_thumb(src)
+    return default_helpers.pick_portrait_thumb(src)
 
 
 def _set_smart_artwork(li, src, thumb=None):
@@ -122,7 +123,7 @@ def _set_smart_artwork(li, src, thumb=None):
         src: Content dict (to extract multiple image URLs)
         thumb: Fallback single image URL if src doesn't provide multiple images
     """
-    return kodi_ui.set_smart_artwork(li, src, thumb=thumb)
+    return default_helpers.set_smart_artwork(li, src, thumb=thumb)
 
 
 def _is_logged_in():
@@ -389,27 +390,27 @@ def browse_placement_row(items_url=None, placement_id=None, comp_index=None):
 
 def _extract_max_devices(summary):
     """Try to parse max devices from API summary payload."""
-    return account_summary.extract_max_devices(summary)
+    return default_helpers.extract_max_devices(summary)
 
 
 def _extract_subscription_name(summary):
     """Try to parse subscription name from API summary payload."""
-    return account_summary.extract_subscription_name(summary)
+    return default_helpers.extract_subscription_name(summary)
 
 
 def _extract_subscription_type(summary):
     """Try to parse subscription type from API summary payload."""
-    return account_summary.extract_subscription_type(summary)
+    return default_helpers.extract_subscription_type(summary)
 
 
 def _extract_subscription_expiry(summary):
     """Try to parse subscription expiry (nextDate) from API summary payload."""
-    return account_summary.extract_subscription_expiry(summary)
+    return default_helpers.extract_subscription_expiry(summary)
 
 
 def _format_date_string(dtstr):
     """Normalize various date formats to YYYY-MM-DD string."""
-    return account_summary.format_date_string(dtstr)
+    return default_helpers.format_date_string(dtstr)
 
 
 def refresh_account_info(notify=True):
