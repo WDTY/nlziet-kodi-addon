@@ -17,7 +17,7 @@ except ImportError:
 from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import session_cache
 from resources.lib.app_context import AddonContext
-from resources.lib.compat import default_helpers
+from resources.lib.compat import default_helpers, default_routes
 from resources.lib.controller_factory import build_route_dependencies, build_route_handlers
 from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
 from resources.lib.i18n import get_string
@@ -1206,34 +1206,34 @@ def select_iptv_channels():
 
 
 def get_compatibility_handlers():
-    return {
-        'main_menu': main_menu,
-        'do_login': do_login,
-        'do_search': do_search,
-        'manage_profiles': manage_profiles,
-        'browse_my_list': browse_my_list,
-        'browse_my_list_group': browse_my_list_group,
-        'toggle_mylist': toggle_mylist,
-        'select_profile': select_profile,
-        'apply_profile': apply_profile,
-        'browse_series': browse_series,
-        'do_logout': do_logout,
-        'confirm_logout': confirm_logout,
-        'refresh_account_info': refresh_account_info,
-        'search_group': search_group,
-        'show_series_detail': show_series_detail,
-        'show_series_season': show_series_season,
-        'browse_placement_row': browse_placement_row,
-        'browse_tv_shows': browse_tv_shows,
-        'browse_tv_genre': browse_tv_genre,
-        'browse_series_categories': browse_series_categories,
-        'browse_series_genre': browse_series_genre,
-        'browse_movie_categories': browse_movie_categories,
-        'browse_movie_genre': browse_movie_genre,
-        'browse_category': browse_category,
-        'play_item': play_item,
-        'select_iptv_channels': select_iptv_channels,
-    }
+    return default_routes.build_compatibility_handlers(
+        main_menu,
+        do_login,
+        do_search,
+        manage_profiles,
+        browse_my_list,
+        browse_my_list_group,
+        toggle_mylist,
+        select_profile,
+        apply_profile,
+        browse_series,
+        do_logout,
+        confirm_logout,
+        refresh_account_info,
+        search_group,
+        show_series_detail,
+        show_series_season,
+        browse_placement_row,
+        browse_tv_shows,
+        browse_tv_genre,
+        browse_series_categories,
+        browse_series_genre,
+        browse_movie_categories,
+        browse_movie_genre,
+        browse_category,
+        play_item,
+        select_iptv_channels,
+    )
 
 
 def get_route_dependencies():
