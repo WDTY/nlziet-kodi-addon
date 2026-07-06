@@ -1,8 +1,59 @@
-from resources.lib.controller_factory import build_route_handlers
+from resources.lib.controller_factory import build_route_dependencies, build_route_handlers
 
 
 class ExplodingApi:
     pass
+
+
+def test_factory_builds_route_dependencies(fake_addon):
+    def get_api_instance():
+        return 'api'
+
+    def build_url(query):
+        return query
+
+    def add_directory_item(*args, **kwargs):
+        return None
+
+    def pick_landscape_thumb(item):
+        return item
+
+    def make_color_tag(color, text):
+        return text
+
+    def get_channels_menu_data(api):
+        return api
+
+    def get_string(key, *args):
+        return key
+
+    dependencies = build_route_dependencies(
+        fake_addon,
+        9,
+        get_api_instance,
+        ExplodingApi,
+        build_url,
+        add_directory_item,
+        pick_landscape_thumb,
+        make_color_tag,
+        'FFFFFFFF',
+        get_channels_menu_data,
+        get_string,
+    )
+
+    assert dependencies == {
+        'addon': fake_addon,
+        'handle': 9,
+        'get_api_instance': get_api_instance,
+        'api_class': ExplodingApi,
+        'build_url': build_url,
+        'add_directory_item': add_directory_item,
+        'pick_landscape_thumb': pick_landscape_thumb,
+        'make_color_tag': make_color_tag,
+        'expiry_color_raw': 'FFFFFFFF',
+        'get_channels_menu_data': get_channels_menu_data,
+        'get_string': get_string,
+    }
 
 
 def test_factory_creates_expected_route_handlers_without_side_effects(fake_addon):

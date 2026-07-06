@@ -9,6 +9,34 @@ from resources.lib.controllers import (
 )
 
 
+def build_route_dependencies(
+    addon,
+    handle,
+    get_api_instance,
+    api_class,
+    build_url,
+    add_directory_item,
+    pick_landscape_thumb,
+    make_color_tag,
+    expiry_color_raw,
+    get_channels_menu_data,
+    get_string,
+):
+    return {
+        'addon': addon,
+        'handle': handle,
+        'get_api_instance': get_api_instance,
+        'api_class': api_class,
+        'build_url': build_url,
+        'add_directory_item': add_directory_item,
+        'pick_landscape_thumb': pick_landscape_thumb,
+        'make_color_tag': make_color_tag,
+        'expiry_color_raw': expiry_color_raw,
+        'get_channels_menu_data': get_channels_menu_data,
+        'get_string': get_string,
+    }
+
+
 def build_route_handlers(legacy_handlers, dependencies):
     auth = AuthController(
         legacy_handlers,

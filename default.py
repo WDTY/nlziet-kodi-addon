@@ -18,7 +18,7 @@ from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import session_cache
 from resources.lib.app_context import AddonContext
 from resources.lib.compat import default_helpers
-from resources.lib.controller_factory import build_route_handlers
+from resources.lib.controller_factory import build_route_dependencies, build_route_handlers
 from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
 from resources.lib.i18n import get_string
 from resources.lib.kodi import ui as kodi_ui
@@ -1237,19 +1237,19 @@ def get_compatibility_handlers():
 
 
 def get_route_dependencies():
-    return {
-        'addon': ADDON,
-        'handle': HANDLE,
-        'get_api_instance': get_api_instance,
-        'api_class': NLZietAPI,
-        'build_url': build_url,
-        'add_directory_item': add_directory_item,
-        'pick_landscape_thumb': _pick_landscape_thumb,
-        'make_color_tag': _make_color_tag,
-        'expiry_color_raw': EXPIRY_COLOR_RAW,
-        'get_channels_menu_data': get_channels_menu_data,
-        'get_string': get_string,
-    }
+    return build_route_dependencies(
+        ADDON,
+        HANDLE,
+        get_api_instance,
+        NLZietAPI,
+        build_url,
+        add_directory_item,
+        _pick_landscape_thumb,
+        _make_color_tag,
+        EXPIRY_COLOR_RAW,
+        get_channels_menu_data,
+        get_string,
+    )
 
 
 def get_route_handlers():
