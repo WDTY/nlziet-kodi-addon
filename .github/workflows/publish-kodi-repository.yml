@@ -1,6 +1,9 @@
 name: Publish Kodi Repository
 
 on:
+  push:
+    tags:
+      - kodi-repo-*
   workflow_dispatch:
 
 permissions:
@@ -16,7 +19,6 @@ jobs:
   build:
     name: Build Pages artifact
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/refactor/extract-controller-adapters' || startsWith(github.ref, 'refs/tags/kodi-repo-')
 
     steps:
       - name: Checkout repository
@@ -26,6 +28,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Validate publish ref
+        run: |
+          python - <<'PY'
+          import os
+          from scripts.build_kodi_repository import validate_publish_ref
+
+          validate_publish_ref(os.environ["GITHUB_EVENT_NAME"], os.environ["GITHUB_REF"])
+          PY
 
       - name: Install test dependencies
         run: |

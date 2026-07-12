@@ -19,6 +19,11 @@ REPOSITORY_ADDON_ID = "repository.wdty.nlziet"
 REPOSITORY_SOURCE_DIR = REPOSITORY_ADDON_ID
 DEFAULT_OUTPUT_DIR = Path("build") / "kodi-repository"
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+ALLOWED_WORKFLOW_DISPATCH_REFS = {
+    "refs/heads/develop",
+    "refs/heads/tooling/kodi-development-repository",
+}
+PUBLISH_TAG_PREFIX = "refs/tags/kodi-repo-"
 
 EXCLUDED_DIRS = {
     ".git",
@@ -33,6 +38,7 @@ EXCLUDED_DIRS = {
     ".idea",
     ".vscode",
     "__pycache__",
+    "docs",
     "env",
     "node_modules",
     "scripts",
@@ -76,6 +82,21 @@ class BuildResult:
 
 class BuildError(RuntimeError):
     """Raised when the repository cannot be built safely."""
+
+
+def validate_publish_ref(event_name: str, ref: str) -> None:
+    if event_name == "workflow_dispatch" and ref in ALLOWED_WORKFLOW_DISPATCH_REFS:
+        return
+    if event_name == "push" and ref.startswith(PUBLISH_TAG_PREFIX):
+        return
+
+    allowed_branches = ", ".join(sorted(ALLOWED_WORKFLOW_DISPATCH_REFS))
+    raise BuildError(
+        "Unsupported publish ref. "
+        f"workflow_dispatch is allowed only from {allowed_branches}; "
+        f"push deployment is allowed only for tags matching {PUBLISH_TAG_PREFIX}*; "
+        f"got event={event_name!r}, ref={ref!r}."
+    )
 
 
 def parse_addon_metadata(addon_xml: Path) -> AddonMetadata:
@@ -124,6 +145,15 @@ def validate_addon_root(root_dir: Path) -> AddonMetadata:
     return metadata
 
 
+def validate_output_dir(root_dir: Path, output_dir: Path) -> None:
+    if output_dir == root_dir:
+        raise BuildError("Output directory must not be the add-on source root")
+    if root_dir.is_relative_to(output_dir):
+        raise BuildError("Output directory must not contain the add-on source root")
+    if output_dir.parent == output_dir:
+        raise BuildError("Output directory must not be a filesystem root")
+
+
 def should_exclude(path: Path, root_dir: Path) -> bool:
     rel = path.relative_to(root_dir)
     parts = rel.parts
@@ -147,12 +177,19 @@ def iter_addon_files(source_dir: Path) -> list[Path]:
     files: list[Path] = []
     for current_dir, dir_names, file_names in os.walk(source_dir):
         current = Path(current_dir)
-        dir_names[:] = sorted(
-            name for name in dir_names if not should_exclude(current / name, source_dir)
-        )
+        kept_dirs = []
+        for name in sorted(dir_names):
+            dir_path = current / name
+            if dir_path.is_symlink():
+                raise BuildError(f"Symlinked directories are not allowed in builds: {dir_path}")
+            if not should_exclude(dir_path, source_dir):
+                kept_dirs.append(name)
+        dir_names[:] = kept_dirs
         for file_name in sorted(file_names):
             file_path = current / file_name
             if not should_exclude(file_path, source_dir):
+                if file_path.is_symlink():
+                    raise BuildError(f"Symlinked files are not allowed in builds: {file_path}")
                 files.append(file_path)
     return sorted(files, key=lambda path: path.relative_to(source_dir).as_posix())
 
@@ -258,6 +295,7 @@ def build_repository(root_dir: Path, output_dir: Path, base_url: str = BASE_URL)
     output_dir = output_dir.resolve()
     metadata = validate_addon_root(root_dir)
     repository_metadata = parse_addon_metadata(root_dir / REPOSITORY_SOURCE_DIR / "addon.xml")
+    validate_output_dir(root_dir, output_dir)
 
     if repository_metadata.addon_id != REPOSITORY_ADDON_ID:
         raise BuildError(

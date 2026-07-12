@@ -55,10 +55,33 @@ python -m pytest tests/test_build_kodi_repository.py
 
 1. In the GitHub repository, open `Settings` > `Pages`.
 2. Set the Pages source to `GitHub Actions`.
-3. Run the `Publish Kodi Repository` workflow manually from the Actions tab.
-4. Select an allowed branch or tag. The workflow is deliberately not published from every feature branch.
+3. Run the `Publish Kodi Repository` workflow manually from the Actions tab only from `develop` or `tooling/kodi-development-repository`, or publish with a tag matching `kodi-repo-*`.
 
-The workflow uses the official GitHub Pages actions and does not require personal access tokens or repository secrets.
+The workflow uses the official GitHub Pages actions and does not require personal access tokens or repository secrets. Pull requests and random feature branches must not deploy; unsupported refs fail during the workflow's validation step.
+
+## First Deployment
+
+1. Decide whether the source `addon.xml` version should be bumped, and commit that version bump separately.
+2. Run the full test suite:
+
+   ```text
+   python -m pytest
+   ```
+
+3. Build locally and inspect the output:
+
+   ```text
+   python scripts/build_kodi_repository.py
+   ```
+
+4. Publish from a controlled tag, for example:
+
+   ```text
+   git tag kodi-repo-2026-07-12
+   git push origin kodi-repo-2026-07-12
+   ```
+
+5. Install the repository ZIP in Kodi and smoke test browsing, login state, and playback before directing anyone else to use it.
 
 ## Kodi Installation
 
@@ -75,12 +98,14 @@ A valid NLZiet subscription is required. The repository hosts only add-on packag
 
 ## Update And Version Behavior
 
-The build does not rewrite `addon.xml`. Kodi only offers an update when the version in the source `addon.xml` increases, so each development release requires an explicit version bump before publishing.
+The build reads the exact version from the source `addon.xml`. It uses that value in `addons.xml` and in the plugin ZIP filename. It does not rewrite, calculate, or bump the version.
 
-Installing this repository uses the same `plugin.video.nlziet` add-on id as upstream. Installing or updating from this repository can replace an installed upstream version.
+Kodi only offers an update when the version increases. Publishing another `1.0.1` build will not automatically replace an already installed `1.0.1`. Each development release that should update Kodi installations requires an explicit source version bump before publishing.
+
+Installing this repository uses the same `plugin.video.nlziet` add-on id as upstream. Installing or updating from this repository can replace an installed upstream version when the fork version is higher. A higher fork version can also prevent Kodi from offering a lower upstream version later unless the user removes or downgrades manually.
 
 ## Rollback
 
 To roll back, publish a new build with an explicitly higher `addon.xml` version that contains the desired source state. Kodi will not automatically downgrade to a lower version.
 
-Users can also uninstall this repository add-on and reinstall the upstream add-on manually. If they switch sources, they should verify which repository owns `plugin.video.nlziet` before updating.
+To return to upstream, remove `WDTY NLZiet Development Repository` from Kodi, uninstall or downgrade `plugin.video.nlziet` as needed, then install the upstream add-on from the upstream source. If switching sources, verify which repository owns `plugin.video.nlziet` before updating.

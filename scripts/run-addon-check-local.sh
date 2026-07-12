@@ -84,6 +84,7 @@ rsync -a "${REPO_ROOT}/" "${TARGET_DIR}/" \
   --exclude '.DS_Store' \
   --exclude 'tests/' \
   --exclude 'scripts/' \
+  --exclude 'docs/' \
   --exclude 'repository.wdty.nlziet/' \
   --exclude 'build/' \
   --exclude 'dist/' \
