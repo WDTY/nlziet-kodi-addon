@@ -17,10 +17,11 @@ except ImportError:
 from resources.lib.nlziet_api import NLZietAPI
 from resources.lib import session_cache
 from resources.lib.app_context import AddonContext
-from resources.lib.compat import default_helpers, default_routes
+from resources.lib.compat import controller_adapters, default_helpers, default_routes
 from resources.lib.compat import main_menu as main_menu_compat
 from resources.lib.controller_factory import build_route_dependencies, build_route_handlers
-from resources.lib.controllers import AuthController, BrowseController, MyListController, PlaybackController, IPTVController, SearchController
+from resources.lib.controllers.auth_controller import AuthController
+from resources.lib.controllers.iptv_controller import IPTVController
 from resources.lib.i18n import get_string
 from resources.lib.kodi import ui as kodi_ui
 from resources.lib.router import Router
@@ -215,143 +216,53 @@ def main_menu():
 
 def browse_series_categories():
     """Display series category/genre list."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item
-    ).series_categories()
+    return controller_adapters.browse_series_categories(get_route_dependencies())
 
 
 def browse_series_genre(genre=None):
     """Display series in a selected genre."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).series_genre(genre)
+    return controller_adapters.browse_series_genre(get_route_dependencies(), genre)
 
 
 def browse_series():
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).series()
+    return controller_adapters.browse_series(get_route_dependencies())
 
 
 def show_series_detail(series_id):
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string
-    ).series_detail(series_id)
+    return controller_adapters.show_series_detail(get_route_dependencies(), series_id)
 
 
 def show_series_season(series_id, season_id):
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).series_season(series_id, season_id)
+    return controller_adapters.show_series_season(get_route_dependencies(), series_id, season_id)
 
 
 def browse_tv_shows():
     """Show TV show categories/genres for browsing."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item
-    ).tv_shows()
+    return controller_adapters.browse_tv_shows(get_route_dependencies())
 
 
 def browse_tv_genre(genre=None):
     """Show TV shows for a specific genre."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).tv_genre(genre)
+    return controller_adapters.browse_tv_genre(get_route_dependencies(), genre)
 
 
 def browse_movie_categories():
     """Display movie category/genre list."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item
-    ).movie_categories()
+    return controller_adapters.browse_movie_categories(get_route_dependencies())
 
 
 def browse_movie_genre(genre=None):
     """Display movies in a selected genre."""
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).movie_genre(genre)
+    return controller_adapters.browse_movie_genre(get_route_dependencies(), genre)
 
 
 def browse_placement_row(items_url=None, placement_id=None, comp_index=None):
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).placement_row(items_url, placement_id, comp_index)
+    return controller_adapters.browse_placement_row(
+        get_route_dependencies(),
+        items_url,
+        placement_id,
+        comp_index,
+    )
 
 
 def _extract_max_devices(summary):
@@ -638,71 +549,34 @@ def do_login():
 
 
 def manage_profiles():
-    return ProfileController(
-        {},
-        ADDON,
-        get_api_instance,
-        NLZietAPI,
-        build_url,
-        HANDLE,
-        add_directory_item,
-        _make_color_tag,
-        get_string
-    ).manage()
+    return controller_adapters.manage_profiles(get_route_dependencies())
 
 
 def browse_my_list():
-    return MyListController(
-        {},
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        get_string
-    ).list()
+    return controller_adapters.browse_my_list(get_route_dependencies())
 
 
 def browse_my_list_group(group):
     """Show items from the user's My List filtered to a single group."""
-    return MyListController(
-        {},
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        get_string
-    ).group(group)
+    return controller_adapters.browse_my_list_group(get_route_dependencies(), group)
 
 
 def toggle_mylist(item_id=None, title=None, type=None, thumb=None):
-    return MyListController(
-        {},
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        get_string
-    ).toggle(item_id, title, type, thumb)
+    return controller_adapters.toggle_mylist(
+        get_route_dependencies(),
+        item_id,
+        title,
+        type,
+        thumb,
+    )
 
 
 def select_profile(profile_id):
-    return ProfileController(
-        {'manage_profiles': manage_profiles},
-        ADDON,
-        get_api_instance,
-        NLZietAPI,
-        build_url,
-        HANDLE,
-        add_directory_item,
-        _make_color_tag,
-        get_string
-    ).select(profile_id)
+    return controller_adapters.select_profile(
+        get_route_dependencies(),
+        profile_id,
+        manage_profiles,
+    )
 
 
 def apply_profile():
@@ -763,49 +637,15 @@ def apply_profile():
 
 
 def do_search():
-    return SearchController(
-        {},
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_string
-    ).search()
+    return controller_adapters.do_search(get_route_dependencies())
 
 
 def browse_category(content_type):
-    return BrowseController(
-        {},
-        HANDLE,
-        get_api_instance,
-        add_directory_item,
-        ADDON,
-        NLZietAPI,
-        get_string,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_channels_menu_data
-    ).category(content_type)
+    return controller_adapters.browse_category(get_route_dependencies(), content_type)
 
 
 def search_group(q, group):
-    return SearchController(
-        {},
-        ADDON,
-        HANDLE,
-        get_api_instance,
-        NLZietAPI,
-        add_directory_item,
-        _pick_landscape_thumb,
-        _make_color_tag,
-        EXPIRY_COLOR_RAW,
-        get_string
-    ).group(q, group)
+    return controller_adapters.search_group(get_route_dependencies(), q, group)
 
 
 def filter_manifest_subtitles(manifest_url):

@@ -91,6 +91,11 @@ class FakeIPTVController(RecordingController):
         return self._record('select_channels')
 
 
+class RaisingBrowseController(FakeBrowseController):
+    def series(self):
+        raise RuntimeError('series failed')
+
+
 def _import_default(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['plugin://plugin.video.nlziet', '42', ''])
     monkeypatch.setattr(sys.modules['xbmc'], 'Player', type('FakePlayer', (), {}), raising=False)
@@ -100,7 +105,7 @@ def _import_default(monkeypatch):
 
 def test_default_search_wrappers_are_callable(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'SearchController', FakeSearchController)
+    monkeypatch.setattr(default.controller_adapters, 'SearchController', FakeSearchController)
     FakeSearchController.calls = []
 
     assert default.do_search() == 'searched'
@@ -114,7 +119,7 @@ def test_default_search_wrappers_are_callable(monkeypatch):
 
 def test_default_search_wrappers_pass_expected_dependencies(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'SearchController', FakeSearchController)
+    monkeypatch.setattr(default.controller_adapters, 'SearchController', FakeSearchController)
     FakeSearchController.calls = []
 
     default.do_search()
@@ -139,7 +144,7 @@ def test_default_search_wrappers_pass_expected_dependencies(monkeypatch):
 
 def test_default_browse_wrappers_delegate_without_fetching_api(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'BrowseController', FakeBrowseController)
+    monkeypatch.setattr(default.controller_adapters, 'BrowseController', FakeBrowseController)
     monkeypatch.setattr(default, 'get_api_instance', lambda: (_ for _ in ()).throw(AssertionError('API should not be called')))
     FakeBrowseController.reset()
 
@@ -173,7 +178,7 @@ def test_default_browse_wrappers_delegate_without_fetching_api(monkeypatch):
 
 def test_default_browse_wrappers_pass_shared_dependencies(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'BrowseController', FakeBrowseController)
+    monkeypatch.setattr(default.controller_adapters, 'BrowseController', FakeBrowseController)
     FakeBrowseController.reset()
 
     default.browse_series()
@@ -195,9 +200,33 @@ def test_default_browse_wrappers_pass_shared_dependencies(monkeypatch):
     )
 
 
+def test_default_browse_wrappers_create_controller_per_invocation(monkeypatch):
+    default = _import_default(monkeypatch)
+    monkeypatch.setattr(default.controller_adapters, 'BrowseController', FakeBrowseController)
+    FakeBrowseController.reset()
+
+    default.browse_series()
+    default.browse_series()
+
+    init_calls = [call for call in FakeBrowseController.calls if call[0] == 'init']
+    assert len(init_calls) == 2
+
+
+def test_default_browse_wrapper_exceptions_are_not_transformed(monkeypatch):
+    default = _import_default(monkeypatch)
+    monkeypatch.setattr(default.controller_adapters, 'BrowseController', RaisingBrowseController)
+
+    try:
+        default.browse_series()
+    except RuntimeError as exc:
+        assert str(exc) == 'series failed'
+    else:
+        raise AssertionError('expected RuntimeError')
+
+
 def test_default_profile_wrappers_delegate_and_pass_dependencies(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'ProfileController', FakeProfileController, raising=False)
+    monkeypatch.setattr(default.controller_adapters, 'ProfileController', FakeProfileController)
     monkeypatch.setattr(default, 'get_api_instance', lambda: (_ for _ in ()).throw(AssertionError('API should not be called')))
     FakeProfileController.reset()
 
@@ -238,7 +267,7 @@ def test_default_profile_wrappers_delegate_and_pass_dependencies(monkeypatch):
 
 def test_default_mylist_wrappers_delegate_and_pass_dependencies(monkeypatch):
     default = _import_default(monkeypatch)
-    monkeypatch.setattr(default, 'MyListController', FakeMyListController)
+    monkeypatch.setattr(default.controller_adapters, 'MyListController', FakeMyListController)
     monkeypatch.setattr(default, 'get_api_instance', lambda: (_ for _ in ()).throw(AssertionError('API should not be called')))
     FakeMyListController.reset()
 
