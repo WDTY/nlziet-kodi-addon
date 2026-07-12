@@ -91,6 +91,11 @@ class FakeIPTVController(RecordingController):
         return self._record('select_channels')
 
 
+class RaisingBrowseController(FakeBrowseController):
+    def series(self):
+        raise RuntimeError('series failed')
+
+
 def _import_default(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['plugin://plugin.video.nlziet', '42', ''])
     monkeypatch.setattr(sys.modules['xbmc'], 'Player', type('FakePlayer', (), {}), raising=False)
@@ -193,6 +198,30 @@ def test_default_browse_wrappers_pass_shared_dependencies(monkeypatch):
         default.EXPIRY_COLOR_RAW,
         default.get_channels_menu_data,
     )
+
+
+def test_default_browse_wrappers_create_controller_per_invocation(monkeypatch):
+    default = _import_default(monkeypatch)
+    monkeypatch.setattr(default, 'BrowseController', FakeBrowseController)
+    FakeBrowseController.reset()
+
+    default.browse_series()
+    default.browse_series()
+
+    init_calls = [call for call in FakeBrowseController.calls if call[0] == 'init']
+    assert len(init_calls) == 2
+
+
+def test_default_browse_wrapper_exceptions_are_not_transformed(monkeypatch):
+    default = _import_default(monkeypatch)
+    monkeypatch.setattr(default, 'BrowseController', RaisingBrowseController)
+
+    try:
+        default.browse_series()
+    except RuntimeError as exc:
+        assert str(exc) == 'series failed'
+    else:
+        raise AssertionError('expected RuntimeError')
 
 
 def test_default_profile_wrappers_delegate_and_pass_dependencies(monkeypatch):
