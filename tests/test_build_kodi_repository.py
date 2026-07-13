@@ -64,9 +64,11 @@ def _write_minimal_addon(root):
         """<?xml version="1.0" encoding="UTF-8"?>
 <addon id="repository.wdty.nlziet" name="Repo" version="0.1.0" provider-name="WDTY">
   <extension point="xbmc.addon.repository" name="Repo">
-    <info compressed="false">placeholder</info>
-    <checksum>placeholder</checksum>
-    <datadir zip="true">placeholder</datadir>
+    <dir>
+      <info compressed="false">placeholder</info>
+      <checksum>placeholder</checksum>
+      <datadir zip="true">placeholder</datadir>
+    </dir>
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="en">Repo</summary>
@@ -126,9 +128,14 @@ def test_build_generates_addons_xml_with_repository_urls(tmp_path):
 
     repository = root.find("addon[@id='repository.wdty.nlziet']")
     extension = repository.find("extension[@point='xbmc.addon.repository']")
-    assert extension.findtext("info") == "https://example.test/kodi/addons.xml"
-    assert extension.findtext("checksum") == "https://example.test/kodi/addons.xml.md5"
-    assert extension.findtext("datadir") == "https://example.test/kodi/zips/"
+    directory = extension.find("dir")
+    assert directory is not None
+    assert extension.find("info") is None
+    assert extension.find("checksum") is None
+    assert extension.find("datadir") is None
+    assert directory.findtext("info") == "https://example.test/kodi/addons.xml"
+    assert directory.findtext("checksum") == "https://example.test/kodi/addons.xml.md5"
+    assert directory.findtext("datadir") == "https://example.test/kodi/zips/"
 
 
 def test_build_generates_correct_md5_checksum(tmp_path):
