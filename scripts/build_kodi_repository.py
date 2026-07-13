@@ -230,11 +230,15 @@ def _rewrite_repository_urls(addon_element: ET.Element, base_url: str) -> None:
     if extension is None:
         raise BuildError(f"{REPOSITORY_SOURCE_DIR}/addon.xml is missing repository extension")
 
-    info = extension.find("info")
-    checksum = extension.find("checksum")
-    datadir = extension.find("datadir")
+    directory = extension.find("dir")
+    if directory is None:
+        raise BuildError("Repository addon.xml must wrap repository data in a dir element")
+
+    info = directory.find("info")
+    checksum = directory.find("checksum")
+    datadir = directory.find("datadir")
     if info is None or checksum is None or datadir is None:
-        raise BuildError("Repository addon.xml must contain info, checksum, and datadir")
+        raise BuildError("Repository addon.xml dir must contain info, checksum, and datadir")
 
     info.text = urls["info"]
     checksum.text = urls["checksum"]
