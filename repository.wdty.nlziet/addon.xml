@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="repository.wdty.nlziet" name="WDTY NLZiet Development Repository" version="0.1.0" provider-name="WDTY">
+  <extension point="xbmc.addon.repository" name="WDTY NLZiet Development Repository">
+    <info compressed="false">https://wdty.github.io/nlziet-kodi-addon/addons.xml</info>
+    <checksum>https://wdty.github.io/nlziet-kodi-addon/addons.xml.md5</checksum>
+    <datadir zip="true">https://wdty.github.io/nlziet-kodi-addon/zips/</datadir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en">Personal development repository for NLZiet</summary>
+    <description lang="en">Unofficial personal development repository for plugin.video.nlziet builds.</description>
+    <platform>all</platform>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+  </extension>
+</addon>
