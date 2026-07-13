@@ -3,10 +3,7 @@
   <requires>
     <import addon="xbmc.python" version="3.0.0" />
     <import addon="script.module.requests" version="2.31.0"/>
-    <import addon="script.module.certifi" version="2021.10.8"/>
-    <import addon="script.module.charset-normalizer" version="2.0.12"/>
     <import addon="script.module.backports.zoneinfo" version="0.2.1"/>
-    <import addon="script.module.tzdata" version="0.2.1"/>
     <import addon="script.module.inputstreamhelper" version="0.6.0" />
     <import addon="inputstream.adaptive" version="2.6.18" />
   </requires>
