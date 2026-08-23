@@ -45,8 +45,8 @@ class FakeBrowseController(RecordingController):
     def series_detail(self, series_id):
         return self._record('series_detail', series_id)
 
-    def series_season(self, series_id, season_id):
-        return self._record('series_season', series_id, season_id)
+    def series_season(self, series_id, season_id, episodes_url=None):
+        return self._record('series_season', series_id, season_id, episodes_url)
 
     def tv_shows(self):
         return self._record('tv_shows')
@@ -166,7 +166,7 @@ def test_default_browse_wrappers_delegate_without_fetching_api(monkeypatch):
         ('series_genre', ('drama',), {}),
         ('series', (), {}),
         ('series_detail', ('series-1',), {}),
-        ('series_season', ('series-1', 'season-2'), {}),
+        ('series_season', ('series-1', 'season-2', None), {}),
         ('tv_shows', (), {}),
         ('tv_genre', ('news',), {}),
         ('movie_categories', (), {}),
@@ -322,6 +322,7 @@ def test_default_route_wiring_exposes_expected_handlers(monkeypatch):
         'select_profile', 'apply_profile', 'browse_series', 'do_logout',
         'confirm_logout', 'refresh_account_info', 'search_group',
         'show_series_detail', 'show_series_season', 'browse_placement_row',
+        'export_series_library',
         'browse_tv_shows', 'browse_tv_genre', 'browse_series_categories',
         'browse_series_genre', 'browse_movie_categories',
         'browse_movie_genre', 'browse_category', 'play_item',

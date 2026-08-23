@@ -110,6 +110,7 @@ def build_route_handlers(legacy_handlers, dependencies):
         'search_group': search.group,
         'show_series_detail': browse.series_detail,
         'show_series_season': browse.series_season,
+        'export_series_library': browse.export_series_library,
         'browse_placement_row': browse.placement_row,
         'browse_tv_shows': browse.tv_shows,
         'browse_tv_genre': browse.tv_genre,

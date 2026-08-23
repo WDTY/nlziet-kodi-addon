@@ -71,6 +71,9 @@ TRANSLATIONS = {
     'subscription_type_label': {'nl': 'Type', 'en': 'Type'},
     'max_devices_label': {'nl': 'Max apparaten', 'en': 'Max devices'},
     'expires_label': {'nl': 'Verloopt', 'en': 'Expires'},
+    'add_to_library': {'nl': 'Toevoegen aan bibliotheek', 'en': 'Add to library'},
+    'library_exported': {'nl': '{} afleveringen geexporteerd naar bibliotheek', 'en': '{} episodes exported to library'},
+    'library_export_failed': {'nl': 'Bibliotheek export mislukt', 'en': 'Library export failed'},
 }
 
 

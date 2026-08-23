@@ -100,8 +100,12 @@ def show_series_detail(dependencies, series_id):
     return _browse_controller(dependencies, variant='detail').series_detail(series_id)
 
 
-def show_series_season(dependencies, series_id, season_id):
-    return _browse_controller(dependencies).series_season(series_id, season_id)
+def show_series_season(dependencies, series_id, season_id, episodes_url=None):
+    return _browse_controller(dependencies).series_season(series_id, season_id, episodes_url)
+
+
+def export_series_library(dependencies, series_id):
+    return _browse_controller(dependencies).export_series_library(series_id)
 
 
 def browse_tv_shows(dependencies):

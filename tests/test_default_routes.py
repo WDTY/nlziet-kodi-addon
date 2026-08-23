@@ -9,6 +9,7 @@ EXPECTED_KEYS = {
     'select_profile', 'apply_profile', 'browse_series', 'do_logout',
     'confirm_logout', 'refresh_account_info', 'search_group',
     'show_series_detail', 'show_series_season', 'browse_placement_row',
+    'export_series_library',
     'browse_tv_shows', 'browse_tv_genre', 'browse_series_categories',
     'browse_series_genre', 'browse_movie_categories',
     'browse_movie_genre', 'browse_category', 'play_item',

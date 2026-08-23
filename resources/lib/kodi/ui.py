@@ -44,7 +44,7 @@ def pick_menu_png(addon_path, name):
 
 def add_directory_item(addon, handle, build_url_func, api_instance_getter,
                        title, query, is_folder=True, thumb=None, info=None,
-                       content=None):
+                       content=None, get_string_func=None):
     url = build_url_func(query)
     li = xbmcgui.ListItem(label=title, offscreen=True)
 
@@ -134,6 +134,16 @@ def add_directory_item(addon, handle, build_url_func, api_instance_getter,
             try:
                 cm_url = build_url_func(cm_query)
                 li.addContextMenuItems([(cm_label, f"RunPlugin({cm_url})")])
+            except Exception:
+                pass
+        if allow_mylist and content_id and isinstance(query, dict) and query.get('mode') == 'series_detail':
+            try:
+                cm_url = build_url_func({
+                    'mode': 'export_series_library',
+                    'series_id': str(content_id),
+                })
+                label = get_string_func('add_to_library') if get_string_func else 'Add to library'
+                li.addContextMenuItems([(label, f"RunPlugin({cm_url})")])
             except Exception:
                 pass
     except Exception:

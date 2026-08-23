@@ -75,6 +75,7 @@ def add_directory_item(title, query, is_folder=True, thumb=None, info=None, cont
         thumb=thumb,
         info=info,
         content=content,
+        get_string_func=get_string,
     )
 
 
@@ -232,8 +233,14 @@ def show_series_detail(series_id):
     return controller_adapters.show_series_detail(get_route_dependencies(), series_id)
 
 
-def show_series_season(series_id, season_id):
-    return controller_adapters.show_series_season(get_route_dependencies(), series_id, season_id)
+def show_series_season(series_id, season_id, episodes_url=None):
+    return controller_adapters.show_series_season(
+        get_route_dependencies(), series_id, season_id, episodes_url
+    )
+
+
+def export_series_library(series_id):
+    return controller_adapters.export_series_library(get_route_dependencies(), series_id)
 
 
 def browse_tv_shows():
@@ -1029,6 +1036,7 @@ def get_compatibility_handlers():
         search_group,
         show_series_detail,
         show_series_season,
+        export_series_library,
         browse_placement_row,
         browse_tv_shows,
         browse_tv_genre,

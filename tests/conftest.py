@@ -18,11 +18,6 @@ class KodiRecorder:
 RECORDER = KodiRecorder()
 
 
-class FakeDialog:
-    def notification(self, heading, message, icon=None):
-        RECORDER.notifications.append((heading, message, icon))
-
-
 class FakeAddon:
     def __init__(self, addon_id='plugin.video.nlziet', path='C:/addon'):
         self._info = {'id': addon_id, 'path': path}
@@ -36,6 +31,11 @@ class FakeAddon:
 
     def setSetting(self, key, value):
         self._settings[key] = value
+
+
+class FakeDialog:
+    def notification(self, heading, message, icon=None):
+        RECORDER.notifications.append((heading, message, icon))
 
 
 @pytest.fixture(autouse=True)
@@ -64,6 +64,7 @@ def _install_kodi_stubs():
     xbmc.executebuiltin = lambda command: RECORDER.executed.append(command)
     xbmc.translatePath = lambda path: path
     xbmc.log = lambda *args, **kwargs: None
+    xbmc.Player = type('Player', (), {})
 
     xbmcgui = types.ModuleType('xbmcgui')
     xbmcgui.NOTIFICATION_INFO = 'info'
@@ -73,6 +74,7 @@ def _install_kodi_stubs():
     xbmcplugin = types.ModuleType('xbmcplugin')
     xbmcplugin.setContent = lambda handle, content: RECORDER.set_content.append((handle, content))
     xbmcplugin.endOfDirectory = lambda handle: RECORDER.ended.append(handle)
+    xbmcplugin.setProperty = lambda *args, **kwargs: None
 
     xbmcaddon = types.ModuleType('xbmcaddon')
     xbmcaddon.Addon = lambda *args, **kwargs: FakeAddon()

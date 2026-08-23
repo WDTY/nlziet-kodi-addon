@@ -57,8 +57,11 @@ class Router:
         elif mode == 'series_season':
             self.handlers['show_series_season'](
                 params.get('series_id'),
-                params.get('season_id')
+                params.get('season_id'),
+                params.get('episodes_url')
             )
+        elif mode == 'export_series_library':
+            self.handlers['export_series_library'](params.get('series_id'))
         elif mode == 'placement_row':
             self.handlers['browse_placement_row'](
                 params.get('items_url'),

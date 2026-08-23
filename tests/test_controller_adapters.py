@@ -34,8 +34,11 @@ class FakeBrowseController(RecordingController):
     def series_detail(self, series_id):
         return self._record('series_detail', series_id)
 
-    def series_season(self, series_id, season_id):
-        return self._record('series_season', series_id, season_id)
+    def series_season(self, series_id, season_id, episodes_url=None):
+        return self._record('series_season', series_id, season_id, episodes_url)
+
+    def export_series_library(self, series_id):
+        return self._record('export_series_library', series_id)
 
     def tv_shows(self):
         return self._record('tv_shows')
@@ -106,7 +109,8 @@ def _dependencies():
         ('browse_series_genre', 'series_genre', ('drama',)),
         ('browse_series', 'series', ()),
         ('show_series_detail', 'series_detail', ('series-1',)),
-        ('show_series_season', 'series_season', ('series-1', 'season-2')),
+        ('show_series_season', 'series_season', ('series-1', 'season-2', None)),
+        ('export_series_library', 'export_series_library', ('series-1',)),
         ('browse_tv_shows', 'tv_shows', ()),
         ('browse_tv_genre', 'tv_genre', ('news',)),
         ('browse_movie_categories', 'movie_categories', ()),
